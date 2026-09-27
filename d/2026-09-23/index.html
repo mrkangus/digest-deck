@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f3f5f9" />
+  <title>Headlines deck</title>
+  <style>
+    :root {
+      --bg: #f3f5f9;
+      --bg-glow: #e8eef8;
+      --card: #ffffff;
+      --line: rgba(15, 23, 42, 0.10);
+      --text: #0f172a;
+      --soft: #334155;
+      --muted: #64748b;
+      --accent: #2563eb;
+      --accent-soft: #dbeafe;
+      --good: #dcfce7;
+      --good-text: #166534;
+      --shadow: 0 14px 40px rgba(15,23,42,0.12);
+      --radius: 26px;
+      --safe-b: env(safe-area-inset-bottom, 0px);
+      --safe-t: env(safe-area-inset-top, 0px);
+      --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow-x: hidden;
+      font-family: var(--font);
+      color: var(--text);
+      background:
+        radial-gradient(900px 480px at 50% -8%, var(--bg-glow) 0%, transparent 55%),
+        var(--bg);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .app {
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto;
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: calc(10px + var(--safe-t)) 12px calc(12px + var(--safe-b));
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 2px 4px;
+    }
+    .brand {
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 650;
+    }
+    .progress-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+    .progress-label { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .progress-bar {
+      width: 112px; height: 4px; border-radius: 999px;
+      background: rgba(15,23,42,0.08); overflow: hidden;
+    }
+    .progress-bar i {
+      display: block; height: 100%; width: 0%;
+      background: var(--accent);
+      border-radius: 999px; transition: width .2s ease;
+    }
+    .stage {
+      flex: 0 0 auto;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      /* none: claim horizontal swipes both ways; browser edge-back won't steal them */
+      touch-action: none;
+      user-select: none;
+      overscroll-behavior-x: none;
+    }
+    .card {
+      width: 100%;
+      max-width: 420px;
+      height: min(78vh, 680px);
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 22px 20px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 0;
+      transition: transform 0.18s ease, opacity 0.18s ease;
+      will-change: transform;
+    }
+    .card.dragging { transition: none; }
+    .card-top {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
+    }
+    .source-block { min-width: 0; flex: 1; }
+    .source {
+      margin: 0;
+      font-size: clamp(18px, 5vw, 22px);
+      line-height: 1.1;
+      font-weight: 750;
+      letter-spacing: -0.02em;
+    }
+    .section-row {
+      margin-top: 4px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--muted);
+      min-width: 0;
+    }
+    .section-line {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .author {
+      flex: 0 1 auto;
+      text-align: right;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 48%;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .digest {
+      flex: 0 0 auto;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 6px 10px;
+      white-space: nowrap;
+    }
+    .headline {
+      margin: 4px 0 0;
+      font-size: clamp(20px, 5.4vw, 26px);
+      line-height: 1.18;
+      letter-spacing: -0.025em;
+      font-weight: 750;
+    }
+    .summary {
+      margin: 0;
+      font-size: clamp(15px, 3.8vw, 17px);
+      line-height: 1.5;
+      color: var(--soft);
+      /* vertical scroll only; horizontal stays free for deck swipe */
+      overflow-x: hidden;
+      overflow-y: auto;
+      touch-action: pan-y;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+      flex: 1;
+      min-height: 0;
+      padding-right: 2px;
+    }
+    .meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .pill {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 5px 9px; border-radius: 8px;
+      background: rgba(15,23,42,0.05); color: var(--muted);
+    }
+    .pill.opinion { background: #fff7ed; color: #c2410c; }
+    .pill.featured { background: var(--accent-soft); color: #1d4ed8; }
+    .pill.selected { background: var(--good); color: var(--good-text); }
+    .open {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 14px; font-weight: 650; padding: 2px 0;
+      color: var(--accent); text-decoration: none;
+    }
+    .actions {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 2px;
+    }
+    .actions button {
+      appearance: none; border: 0; cursor: pointer;
+      border-radius: 16px; padding: 14px 12px;
+      font-size: 15px; font-weight: 650; color: var(--text);
+      background: rgba(15,23,42,0.05);
+    }
+    .actions button.good { background: var(--good); color: var(--good-text); }
+    .actions button.good.on { outline: 2px solid #86efac; }
+    .actions button:active { transform: scale(0.98); }
+    .hint {
+      text-align: center; color: var(--muted); font-size: 12px; min-height: 16px;
+      padding: 0 8px;
+    }
+    .dock {
+      display: grid; gap: 8px;
+      padding: 10px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 8px 24px rgba(15,23,42,0.08);
+    }
+    .dock-row { display: flex; gap: 10px; align-items: stretch; }
+    .dock button { flex: 1; padding: 12px 10px; border-radius: 14px; font-size: 14px; font-weight: 650; border: 0; cursor: pointer; }
+    .dock .primary { background: var(--accent); color: #fff; }
+    .dock .ghost {
+      background: rgba(15,23,42,0.06); border: 1px solid var(--line);
+      color: var(--text); flex: 0 0 auto;
+      min-width: 72px; min-height: 56px;
+      padding: 14px 18px;
+      font-size: 28px; line-height: 1;
+      font-weight: 700;
+    }
+    .selected-list { max-height: 64px; overflow: auto; font-size: 12px; color: var(--muted); line-height: 1.35; }
+    .toast {
+      position: fixed; left: 50%; bottom: calc(28px + var(--safe-b));
+      transform: translateX(-50%) translateY(16px);
+      background: #0f172a; color: #fff; border: 1px solid rgba(15,23,42,0.2);
+      padding: 10px 14px; border-radius: 12px; font-size: 13px;
+      max-width: min(90vw, 420px); text-align: center;
+      opacity: 0; pointer-events: none; transition: opacity .2s ease, transform .2s ease;
+      z-index: 20;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    .jump {
+      display: flex; align-items: center; gap: 6px;
+      margin-top: 2px;
+    }
+    .jump label {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+      text-transform: uppercase; color: var(--muted);
+    }
+    .jump input {
+      width: 52px; appearance: textfield;
+      border: 1px solid var(--line); border-radius: 10px;
+      padding: 5px 8px; font-size: 13px; font-weight: 650;
+      font-variant-numeric: tabular-nums; text-align: center;
+      background: #fff; color: var(--text);
+    }
+    .jump input::-webkit-outer-spin-button,
+    .jump input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .jump button {
+      appearance: none; border: 0; cursor: pointer;
+      border-radius: 10px; padding: 5px 10px;
+      font-size: 12px; font-weight: 700;
+      background: var(--accent-soft); color: #1d4ed8;
+    }
+    .jump button:active { transform: scale(0.97); }
+
+    /* Day switcher — compact, mobile-tappable, no swipe steal */
+    .header-left { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 4px; }
+    .day-row {
+      display: flex; align-items: center; gap: 6px;
+      touch-action: manipulation;
+    }
+    .day-row label {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+      text-transform: uppercase; color: var(--muted);
+      flex: 0 0 auto;
+    }
+    #daySelect {
+      appearance: none; -webkit-appearance: none;
+      border: 1px solid var(--line); border-radius: 10px;
+      padding: 8px 30px 8px 10px;
+      min-height: 40px; max-width: min(180px, 48vw);
+      font-size: 13px; font-weight: 650;
+      font-variant-numeric: tabular-nums;
+      background-color: #fff;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%2364748b' d='M1.4 1.2L6 5.6l4.6-4.4 1.2 1.3L6 8 0.2 2.5z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      background-size: 12px 8px;
+      color: var(--text);
+      touch-action: manipulation;
+      cursor: pointer;
+    }
+    #daySelect:focus { outline: 2px solid var(--accent-soft); outline-offset: 1px; }
+
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="header-left">
+        <div class="brand" id="brand">Headlines deck</div>
+        <div class="day-row">
+          <label for="daySelect">Days</label>
+          <select id="daySelect" aria-label="Choose day archive"></select>
+        </div>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-label" id="progressLabel">—</div>
+        <div class="progress-bar"><i id="progressFill"></i></div>
+        <form class="jump" id="jumpForm" autocomplete="off">
+          <label for="jumpN">Go</label>
+          <input id="jumpN" type="number" inputmode="numeric" min="1" step="1" placeholder="#" aria-label="Jump to story number" />
+          <button type="submit">Go</button>
+        </form>
+      </div>
+    </header>
+
+    <div class="stage" id="stage" aria-label="Headline card">
+      <article class="card" id="card"></article>
+    </div>
+
+    <div class="hint" id="hint">Swipe ← / → · Go # · Brief me · Copy list</div>
+
+    <footer class="dock">
+      <div class="dock-row">
+        <button type="button" class="ghost" id="btnPrev" aria-label="Previous">←</button>
+        <button type="button" class="primary" id="btnCopy">Copy brief list</button>
+        <button type="button" class="ghost" id="btnNext" aria-label="Next">→</button>
+      </div>
+      <div class="selected-list" id="selectedList">No stories selected for briefing yet.</div>
+    </footer>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const INLINE_DATA = {"date": "2026-09-23", "title": "Morning headlines — Wednesday, Sep 23, 2026", "note": "194 stories. Swipe · Brief me · Copy list · paste numbers into News Headlines chat.", "stories": [{"n": 1, "source": "The Globe and Mail", "section": "Business & Investing", "author": "Irene Galea", "headline": "Telesat faces showdown with American creditors over debt", "url": "https://www.theglobeandmail.com/business/article-telesat-faces-showdown-with-american-creditors-over-debt/", "summary": "Satellite operator Telesat faces a Dec. 6 deadline on about US$1.71-billion of debt tied to its older geostationary (GEO) subsidiary, with lenders including Silver Point, Sound Point and GoldenTree still negotiating a refinancing after an August proposal. The company has said its cash alone may not cover the maturities, and creditors allege it shifted Lightspeed LEO equity out of their reach; CFO Donald Tremblay said Telesat still seeks a consensual plan. Analyst David McFadgen of ATB Cormark warned a default is not unlikely even as shares have risen on military broadband work, while a 1991 statute complicates any wind-up of Telesat Canada.", "digestN": 1, "opinion": false}, {"n": 2, "source": "The Globe and Mail", "section": "Business & Investing", "author": "Marieke Walsh, Emma Graney, Jeffrey Jones", "headline": "Ottawa reviewing its approach to selling Trans Mountain pipeline", "url": "https://www.theglobeandmail.com/politics/article-ottawa-reviewing-its-approach-to-selling-trans-mountain-pipeline/", "summary": "Finance Minister François-Philippe Champagne said Ottawa is reviewing how it manages public assets including Trans Mountain, while his office clarified the government still intends to sell the pipeline eventually rather than remain the long-term owner. Energy Minister Tim Hodgson has said a sale would wait until capacity upgrades finish around 2028; the expansion cost about $34-billion and has returned roughly $2.6-billion to federal coffers since oil began flowing in 2024. The pipeline was left out of last week’s Canada Investment Summit prospectus as Ottawa also advances a smaller-than-expected Indigenous equity offer along the route.", "digestN": 2, "opinion": false}, {"n": 3, "source": "The Globe and Mail", "section": "Business & Investing", "author": "Marieke Walsh", "headline": "Ottawa offers Indigenous groups along Trans Mountain route combined 15% equity", "url": "https://www.theglobeandmail.com/politics/article-ottawa-offers-first-nations-15-equity-stake-in-trans-mountain-pipeline/", "summary": "Finance Minister François-Philippe Champagne sent letters offering the 129 First Nations along the Trans Mountain route a combined 15-per-cent equity stake to be bought collectively at a fair price and split evenly, plus low-cost debt financing and a $2.5-million lump sum for each community that commits. The letter leaves purchase price, timeline and whether the stake covers the pipeline or all of Trans Mountain Corp. unspecified; critics including the Indian Resource Council called the offer feeble, and sources said some Nations see the cash payment as pressure to sign. A Western Indigenous Pipeline Group proposal to buy 30 per cent reportedly went unanswered a week before Champagne’s competing offer.", "digestN": 3, "opinion": false}, {"n": 4, "source": "The Globe and Mail", "section": "Business & Investing", "author": "Susan Krashinsky Robertson", "headline": "Cineplex names Bill Walker as CEO, initiates review that could include company’s sale", "url": "https://www.theglobeandmail.com/business/article-cineplex-names-new-ceo-launches-strategic-review/", "summary": "Cineplex named Bill Walker, former Landmark Cinemas CEO, as chief executive effective immediately and launched a board strategic review that could include a sale of the company, with Goldman Sachs and TD Securities advising. Chair Phyllis Yaffe said the stock may undervalue the business; Ellis Jacob remains a special adviser through year-end after more than two decades as CEO. Shares were little changed near $12.50 after years of post-pandemic recovery short of the 2019 Cineworld deal highs, as Walker pointed to stronger theatrical windows and upcoming tentpoles.", "digestN": 4, "opinion": false}, {"n": 5, "source": "The Globe and Mail", "section": "Business & Investing", "author": "Alexandra Posadzki", "headline": "Canada’s Big Six banks working on tokenized deposits in latest digital money push", "url": "https://www.theglobeandmail.com/business/article-canadas-big-six-banks-tokenized-deposits-digital-money-push/", "summary": "Canada’s Big Six banks jointly announced work on tokenized Canadian-dollar deposits—blockchain representations of ordinary bank deposits—after the Stablecoin Act and similar U.S. bank initiatives. The first phase would move tokenized deposits between institutions to speed settlement on a shared ledger; OSFI says such deposits are not legally distinct from traditional deposits. Experts argued the push supports monetary sovereignty versus U.S.-dollar digital assets and could complement or compete with the delayed Real-Time Rail.", "digestN": 5, "opinion": false}, {"n": 6, "source": "The Globe and Mail", "section": "Business & Investing", "author": "Vanmala Subramaniam", "headline": "Labour Code changes will increase transparency amid high-profile bargaining disputes, Hajdu says", "url": "https://www.theglobeandmail.com/business/article-canada-labour-code-changes-patty-hajdu-workers-right-to-strike-will/", "summary": "Jobs Minister Patty Hajdu defended Canada Labour Code amendments in the Building Canada Strong Act that create a special mediator who can publish a public report after 21 days at an impasse and that add “national interest” criteria around Section 107 back-to-work powers. She said the changes improve transparency and do not erase the constitutional right to strike after tripartite consultation. Labour leaders including CLC president Bea Bruske accept mediation but oppose easier strike-ending powers after 2024–25 port, rail and airline disruptions, while business groups welcomed tools to protect supply chains.", "digestN": 6, "opinion": false}, {"n": 7, "source": "The Globe and Mail", "section": "Business & Investing", "author": "Emma Graney", "headline": "Diesel prices hit record highs as wars squeeze global supplies", "url": "https://www.theglobeandmail.com/business/article-diesel-prices-hit-record-highs-as-wars-squeeze-global-supplies/", "summary": "U.S. retail diesel hit about $6.50 a gallon, a 2026 high, as Middle East and Ukraine conflicts cut Middle East and Russian diesel/gasoil exports far below February levels, according to the IEA and Rystad. President Donald Trump backed limiting U.S. diesel exports to ease prices even as Brent eased toward about US$99. Central banks have tightened amid the energy shock, and the IEA cut 2026 supply and demand outlooks, warning high diesel costs will weigh on consumers and growth.", "digestN": 7, "opinion": false}, {"n": 8, "source": "The Globe and Mail", "section": "Business & Investing", "author": "Greta Rosen Fondahn, Helen Reid", "headline": "H&M could be taken private, analysts say, as founding family quietly builds stake", "url": "https://www.theglobeandmail.com/business/international-business/article-hm-founding-family-builds-stake-could-be-taken-private/", "summary": "H&M’s founding Persson family, via Ramsbury Invest, has bought tens of millions of shares this year, lifting related ownership above 68 per cent from about 49.5 per cent in early 2021 and fuelling talk of a gradual take-private toward Sweden’s 90-per-cent squeeze-out threshold. CEO Daniel Erver’s turnaround has yet to restore strong sales growth amid competition from Shein and Inditex, and the stock remains far below its 2015 peak. Ramsbury declined to comment on privatization plans beyond long-term ownership; some analysts expect a private deal by around 2030.", "digestN": 8, "opinion": false}, {"n": 9, "source": "The Globe and Mail", "section": "Business & Investing", "author": "Matthew McClearn", "headline": "Pickering nuclear station shuts down for refurbishment, raising fears of higher power prices", "url": "https://www.theglobeandmail.com/business/article-pickering-nuclear-station-refurbishment-fears-higher-power-prices/", "summary": "Ontario Power Generation began taking Pickering’s four operating units offline for a $26.8-billion refurbishment, with Unit 5 shut Tuesday and returns expected between 2031 and 2034. Large industrial users, who pay wholesale prices, warn that more gas-fired generation to fill the gap could spike winter costs; AMPCO is seeking rate relief and carbon-cost changes. The province cites reserve capacity and existing industrial programs, while critics call the overhaul costly and risky compared with alternatives.", "digestN": 9, "opinion": false}, {"n": 10, "source": "The Globe and Mail", "section": "Business & Investing", "author": "Leigh Thomas", "headline": "OECD upgrades 2026 growth forecast as AI boom seen offsetting energy shock", "url": "https://www.theglobeandmail.com/business/economy/article-oecd-global-growth-forecast-2026-ai-boom-energy-shock/", "summary": "The OECD raised its 2026 global growth forecast slightly to 2.9 per cent from 2.8 per cent, citing AI infrastructure investment as a resilience pillar, while cutting the 2027 outlook to 3.0 per cent as the Middle East energy shock weighs more. G20 inflation forecasts were lifted, and downside risks include energy jitters, weather, bond yields and weak AI returns. Canada’s 2026 and 2027 growth forecasts were cut to 0.9 per cent and 1.3 per cent on new U.S. tariffs.", "digestN": 10, "opinion": false}, {"n": 11, "source": "The Globe and Mail", "section": "Business & Investing", "author": "Daniel Johnson", "headline": "Industry roadblocks are stifling Canada’s economic potential, report says", "url": "https://www.theglobeandmail.com/business/article-canada-economic-potential-pwc-chamber-of-commerce-report/", "summary": "A PwC Canada and Canadian Chamber of Commerce report argues Canada underperforms its potential in AI, mining, energy, defence and agriculture because of slow permitting, thin growth-stage capital, infrastructure bottlenecks and weak domestic scaling of IP and resources. Authors say barriers are fixable and urge stronger public-private collaboration so more value stays in Canada rather than flowing mainly to the U.S. The study lands amid efforts to diversify trade and build more globally competitive Canadian firms.", "digestN": 11, "opinion": false}, {"n": 12, "source": "The Globe and Mail", "section": "Business & Investing", "author": "", "headline": "Canada nearing free-trade deals with the Philippines, ASEAN block, Trade Minister says", "url": "https://www.theglobeandmail.com/business/article-canada-nearing-free-trade-deals-with-the-philippines-asean-block/", "summary": "Trade Minister Maninder Sidhu said free-trade talks with the Philippines and with ASEAN are more than 90 per cent complete, with a push to finish before Prime Minister Mark Carney visits Manila in November. He framed the deals as long-planned diversification, highlighting Canadian LNG for Asian energy security and interest in Philippine data centres and the Luzon Economic Corridor. Sidhu did not quantify expected investment but said agreements typically unlock private projects by signalling closer economic ties.", "digestN": 12, "opinion": false}, {"n": 13, "source": "The Globe and Mail", "section": "Business & Investing", "author": "Mark Rendell", "headline": "Canada’s bet on European trade faces plenty of hurdles", "url": "https://www.theglobeandmail.com/business/article-canadas-bet-on-european-trade-faces-plenty-of-hurdles/", "summary": "Despite CETA-era growth of about 80 per cent in Canada–EU goods and services trade since 2017, Europe still takes under 6 per cent of Canadian exports versus nearly 70 per cent for the U.S., and experts doubt that talk of EU “associate” status will quickly change that. Barriers include unfinished CETA ratification, unused meat quotas under hormone rules, incomplete regulatory alignment and Europe’s coming carbon border levy. Near-term hopes centre on energy, LNG and emerging areas such as critical minerals, defence and AI standards.", "digestN": 13, "opinion": false}, {"n": 14, "source": "The Globe and Mail", "section": "Business & Investing", "author": "", "headline": "Ottawa approves FortisBC’s Tilbury LNG expansion", "url": "https://www.theglobeandmail.com/business/industry-news/energy-and-resources/article-ottawa-approves-fortisbcs-tilbury-lng-expansion/", "summary": "Ottawa approved FortisBC’s Tilbury Phase 2 LNG expansion in Delta, B.C., right after British Columbia issued an environmental assessment certificate, citing jobs and economic benefits under a one-project, one-review approach. The project would add storage and capacity for up to 7,700 tonnes of LNG a day, aimed partly at marine fuel including BC Ferries, with provincial estimates of large construction employment and up to $1.7-billion in GDP during build-out. B.C. Emergency Management Minister Kelly Greene has opposed the plan on safety grounds even as the provincial certificate includes binding environmental and Indigenous-related conditions.", "digestN": 14, "opinion": false}, {"n": 15, "source": "The Globe and Mail", "section": "Business & Investing", "author": "Trixie Yap, Nidhi Verma, Florence Tan", "headline": "Saudi Arabia close to resuming Red Sea exports as East-West pipeline comes back online, sources say", "url": "https://www.theglobeandmail.com/business/article-saudi-arabia-east-west-pipeline-red-sea-oil-exports/", "summary": "Sources said Saudi Arabia restarted its East-West Pipeline after a Sept. 11 drone attack shut the line and Yanbu loadings, with Red Sea exports possibly resuming as early as Tuesday and Brent falling more than US$2 toward about US$97. The line had been moving around 4 million barrels a day around the Strait of Hormuz disruption; pumping restarted at a low rate and a full return could take weeks. Traders positioned tankers for Saudi cargoes while Iran talk of reopening Hormuz and higher Ras Tanura loadings also eased prices.", "digestN": 15, "opinion": false}, {"n": 16, "source": "The Globe and Mail", "section": "Business & Investing", "author": "", "headline": "TC Energy to sell Guadalajara-Manzanillo pipeline in Mexico for $560-million", "url": "https://www.theglobeandmail.com/business/article-tc-energy-to-sell-guadalajara-manzanillo-pipeline-in-mexico/", "summary": "TC Energy agreed to sell its 313-kilometre Guadalajara–Manzanillo natural gas pipeline in Mexico to Esentia Energy Development for $560-million. The line can move up to 500 million cubic feet a day between imported LNG near Manzanillo and supply near Guadalajara to power and industrial customers in Colima and Jalisco. CEO François Poirier cast the deal as portfolio optimization; TC Energy will keep about 3,300 kilometres of other Mexican pipelines, with closing targeted for the first half of 2027 subject to approvals.", "digestN": 16, "opinion": false}, {"n": 17, "source": "The Globe and Mail", "section": "Business & Investing", "author": "Andrew Willis", "headline": "Miner Cameco expected to boost dividends after win on Westinghouse investment", "url": "https://www.theglobeandmail.com/business/article-miner-cameco-expected-to-boost-dividends-after-win-on-westinghouse/", "summary": "Cameco, which owns 49 per cent of Westinghouse with Brookfield Renewable’s 51 per cent after their 2023 purchase, is seen as likely to raise dividends if a planned Westinghouse IPO this fall values the reactor maker at roughly US$30-billion to US$50-billion. Westinghouse has a large AP1000 order book and has already paid cash distributions to Cameco; analysts project sharply higher Cameco free cash flow into 2028. Major banks including Citi, Goldman Sachs and JPMorgan are reported to be leading the listing work.", "digestN": 17, "opinion": false}, {"n": 18, "source": "The Globe and Mail", "section": "Business & Investing", "author": "James Bradshaw", "headline": "Carney’s investment summit attracted ‘all the right people.’ Will it bear fruit?", "url": "https://www.theglobeandmail.com/business/article-canada-investment-summit-mark-carney-politics/", "summary": "Prime Minister Mark Carney’s invitation-only Canada Investment Summit drew about 250 senior global finance leaders representing roughly $120-trillion in assets, with many first-time visitors to Canada praising the country’s tone but stressing the need for investable deals and faster permitting. Ottawa used the event to highlight a productivity mega deduction, faster large-project tax rulings, airport private investment while retaining ownership, and a “one project, one review, one year” standard. Canadian pensions announced domestic funding pledges, but major foreign deal commitments were scarce, leaving execution as the next test.", "digestN": 18, "opinion": false}, {"n": 19, "source": "The Globe and Mail", "section": "Business & Investing", "author": "Chan Ho-him", "headline": "Alibaba unveils new chip and ambitious AI model plans", "url": "https://www.theglobeandmail.com/investing/article-alibaba-unveils-new-chip-and-ambitious-ai-model-plans/", "summary": "At its Hangzhou conference, Alibaba said its new Zhenwu V900 is China’s most powerful AI chip yet, with about triple the performance of the prior M890, and outlined plans for a 5- to 10-trillion-parameter model beyond today’s 2.4-trillion-parameter Qwen3.8-Max. The company also aims for more than 20 gigawatts of computing capacity by 2032 amid rising cloud AI demand and supply-chain bottlenecks. The announcements come days before a planned Xi–Trump meeting where AI competition is expected to feature prominently.", "digestN": 19, "opinion": false}, {"n": 20, "source": "The Globe and Mail", "section": "Business & Investing", "author": "Sean Silcoff", "headline": "Xanadu stock faces test as lockup set to lift for most investors", "url": "https://www.theglobeandmail.com/business/article-xanadu-stock-faces-test-as-lockup-set-to-lift-for-most-investors/", "summary": "Six months after Xanadu’s SPAC listing, lockups lift on most of its shares on Sept. 22, freeing early investors after a post-IPO surge and steep selloff left the stock around US$7.42 with a previously tiny free float. CEO Christian Weedbrook argued more tradable shares should curb volatility and attract institutions; CIBC’s Todd Coupland advised buying weakness ahead of technical milestones including a DARPA competition stage and Ottawa-backed manufacturing support. Large holders such as OMERS face a choice whether to lock in still-large paper gains in the speculative quantum sector.", "digestN": 20, "opinion": false}, {"n": 21, "source": "The Globe and Mail", "section": "Business & Investing", "author": "", "headline": "SEC wants to get rid of shareholder proposals, setting another dangerous precedent for Canada", "url": "https://www.theglobeandmail.com/business/commentary/article-us-sec-shareholder-proposals-investors/", "summary": "", "digestN": 21, "opinion": true}, {"n": 22, "source": "The Globe and Mail", "section": "Business & Investing", "author": "", "headline": "Carney can change Canada’s policies, but who will change Canadians?", "url": "https://www.theglobeandmail.com/business/commentary/article-carney-can-change-canadas-policies-but-who-will-change-canadians/", "summary": "", "digestN": 22, "opinion": true}, {"n": 23, "source": "The Globe and Mail", "section": "Business & Investing", "author": "", "headline": "Canadian airports can anchor a global infrastructure champion", "url": "https://www.theglobeandmail.com/business/commentary/article-canadian-airports-can-anchor-a-global-infrastructure-champion/", "summary": "", "digestN": 23, "opinion": true}, {"n": 24, "source": "The Globe and Mail", "section": "Business & Investing", "author": "", "headline": "The upside of a European alternative to Trumpmerica, and the limits", "url": "https://www.theglobeandmail.com/business/commentary/article-the-upside-of-a-european-alternative-to-trumpmerica-and-the-limits/", "summary": "", "digestN": 24, "opinion": true}, {"n": 25, "source": "The Globe and Mail", "section": "Business & Investing", "author": "", "headline": "Premarket: Wall Street futures muted; Mideast talks, U.S.-China summit in focus", "url": "https://www.theglobeandmail.com/investing/markets/inside-the-market/market-news/article-premarket-wall-street-futures-rise-as-oil-slides-ai-buzz-lifts-tech/", "summary": "", "digestN": 25, "opinion": false}, {"n": 26, "source": "The Globe and Mail", "section": "Business & Investing", "author": "", "headline": "Oil holds near two-week lows while diesel cracks hit record peak", "url": "https://www.theglobeandmail.com/investing/article-oil-holds-near-two-week-lows-on-easing-supply-concerns/", "summary": "", "digestN": 26, "opinion": false}, {"n": 27, "source": "The Globe and Mail", "section": "Business & Investing", "author": "", "headline": "Money managers find bargains after sell-off in nuclear sector", "url": "https://www.theglobeandmail.com/investing/globe-advisor/advisor-stocks/article-money-managers-find-bargains-after-sell-off-in-nuclear-sector/", "summary": "", "digestN": 27, "opinion": false}, {"n": 28, "source": "The Globe and Mail", "section": "Business & Investing", "author": "", "headline": "There’s a reason Trump is the only one talking about 1% interest rates", "url": "https://www.theglobeandmail.com/investing/article-theres-a-reason-trump-is-the-only-one-talking-about-1-rates/", "summary": "", "digestN": 28, "opinion": false}, {"n": 29, "source": "The Globe and Mail", "section": "Business & Investing", "author": "", "headline": "Darkest before dawn? Funds mull return to bonds", "url": "https://www.theglobeandmail.com/investing/article-darkest-before-dawn-funds-mull-return-to-bonds/", "summary": "", "digestN": 29, "opinion": false}, {"n": 30, "source": "The Globe and Mail", "section": "Business & Investing", "author": "", "headline": "U.S. financial stocks fall amid growing worries about potential new AI competitors", "url": "https://www.theglobeandmail.com/investing/article-us-financial-stocks-fall-amid-growing-worries-about-potential-new-ai/", "summary": "", "digestN": 30, "opinion": false}, {"n": 31, "source": "The Globe and Mail", "section": "Business & Investing", "author": "", "headline": "Canadian dollar hits nearly seven-week low on wider yield spreads", "url": "https://www.theglobeandmail.com/investing/article-canadian-dollar-hits-nearly-seven-week-low-on-wider-yield-spreads/", "summary": "", "digestN": 31, "opinion": false}, {"n": 32, "source": "The Globe and Mail", "section": "Business & Investing", "author": "", "headline": "U.S. dollar hits two-month high as Fed outlook ‘dominant’", "url": "https://www.theglobeandmail.com/investing/article-us-dollar-hits-two-month-high-as-fed-outlook-dominant/", "summary": "", "digestN": 32, "opinion": false}, {"n": 33, "source": "The Globe and Mail", "section": "Business & Investing", "author": "", "headline": "Trump and Xi to meet this week as they aim to avoid disruptions in relationship", "url": "https://www.theglobeandmail.com/world/article-both-trump-and-xi-will-be-eager-to-avoid-certain-topics-at-their/", "summary": "", "digestN": 33, "opinion": false}, {"n": 34, "source": "The Globe and Mail", "section": "Business & Investing", "author": "", "headline": "AI leaders to brief UN as warnings grow over technology’s dangers", "url": "https://www.theglobeandmail.com/world/article-un-general-assembly-ai-executives-technology-dangers/", "summary": "", "digestN": 34, "opinion": false}, {"n": 35, "source": "The Globe and Mail", "section": "Business & Investing", "author": "", "headline": "Amid shifting political winds, Canada gets more of the spotlight on the UN’s stage", "url": "https://www.theglobeandmail.com/canada/article-canada-carney-spotlight-un/", "summary": "", "digestN": 35, "opinion": false}, {"n": 36, "source": "The Wall Street Journal", "section": "Business", "author": "", "headline": "Finnish Drone Group Sensofusion Seeks $344 Million in Helsinki IPO", "url": "https://www.wsj.com/business/retail/finnish-drone-group-sensofusion-seeks-344-million-in-helsinki-ipo-6ed784ac", "summary": "", "digestN": 36, "opinion": false}, {"n": 37, "source": "The Wall Street Journal", "section": "Business", "author": "", "headline": "General Mills Bets on New Products, Marketing to Drive Turnaround", "url": "https://www.wsj.com/business/retail/general-mills-profit-sales-slip-as-turnaround-continues-14bcb98a", "summary": "", "digestN": 37, "opinion": false}, {"n": 38, "source": "The Wall Street Journal", "section": "Business", "author": "", "headline": "Oil Prices Rebound Amid Persistent Middle East Supply Risks", "url": "https://www.wsj.com/business/energy-oil/oil-prices-mixed-as-traders-weigh-u-s-iran-talks-saudi-pipeline-progress-3b33f75c", "summary": "", "digestN": 38, "opinion": false}, {"n": 39, "source": "The Wall Street Journal", "section": "Business", "author": "", "headline": "Arcadis Shares Fall After Canada’s WSP Global Pulls Takeover Offer", "url": "https://www.wsj.com/business/deals/arcadis-shares-fall-after-canadas-wsp-global-pulls-takeover-offer-d5079668", "summary": "", "digestN": 39, "opinion": false}, {"n": 40, "source": "The Wall Street Journal", "section": "Business", "author": "", "headline": "African Fintech Airtel Money Targets $9 Billion Valuation With London Listing", "url": "https://www.wsj.com/business/deals/airtel-money-plans-london-listing-e50f163d", "summary": "", "digestN": 40, "opinion": false}, {"n": 41, "source": "The Wall Street Journal", "section": "Business", "author": "", "headline": "Trump’s Oil Allies Fear Losing Battle in Bid to Stop Diesel-Export Ban", "url": "https://www.wsj.com/business/energy-oil/trumps-oil-allies-see-nightmare-scenario-of-diesel-export-ban-becoming-reality-16973ae2", "summary": "", "digestN": 41, "opinion": false}, {"n": 42, "source": "The Wall Street Journal", "section": "Business", "author": "", "headline": "Diageo Picks WPP’s Wilson to Succeed Finance Chief Jhangiani", "url": "https://www.wsj.com/business/c-suite/diageo-names-wpp-finance-chief-joanne-wilson-as-next-cfo-d054b0a6", "summary": "", "digestN": 42, "opinion": false}, {"n": 43, "source": "The Wall Street Journal", "section": "Business", "author": "", "headline": "How Chevron’s CFO Leads Through Global Tumult—‘You Plan for It’", "url": "https://www.wsj.com/business/how-chevrons-cfo-leads-through-global-tumultyou-plan-for-it-52265e57", "summary": "", "digestN": 43, "opinion": false}, {"n": 44, "source": "The Wall Street Journal", "section": "Business", "author": "", "headline": "Zelensky Says Putin Is Unlikely to Curb Attacks Without U.S. Pressure", "url": "https://www.wsj.com/articles/zelensky-says-putin-is-unlikely-to-curb-attacks-without-u-s-pressure-a249cb12", "summary": "", "digestN": 44, "opinion": false}, {"n": 45, "source": "The Wall Street Journal", "section": "Business", "author": "", "headline": "Qantas Plans Nonstop Sydney-New York Flights", "url": "https://www.wsj.com/business/airlines/qantas-plans-nonstop-sydney-new-york-flights-4ad93572", "summary": "", "digestN": 45, "opinion": false}, {"n": 46, "source": "The Wall Street Journal", "section": "Business", "author": "", "headline": "Activist Jana Partners Urges Six Flags to Explore Sale", "url": "https://www.wsj.com/business/deals/activist-jana-partners-urges-six-flags-to-explore-sale-4c9e3a93", "summary": "", "digestN": 46, "opinion": false}, {"n": 47, "source": "The Wall Street Journal", "section": "Business", "author": "", "headline": "Trump Threatens Iran’s ‘Annihilation’ in U.N. Speech", "url": "https://www.wsj.com/politics/policy/trump-threatens-irans-annihilation-in-u-n-speech-08b4921d", "summary": "", "digestN": 47, "opinion": false}, {"n": 48, "source": "The Wall Street Journal", "section": "Business", "author": "", "headline": "Trump Weighs Diesel Export Ban as Fuel Prices Soar", "url": "https://www.wsj.com/business/energy-oil/trump-weighs-diesel-export-ban-as-fuel-prices-soar-6d1a3d2e", "summary": "", "digestN": 48, "opinion": false}, {"n": 49, "source": "The Wall Street Journal", "section": "Business", "author": "", "headline": "DoorDash to Pay $131.5 Million to Resolve NYC Investigation Into Minimum-Pay Law Compliance", "url": "https://www.wsj.com/business/doordash-to-pay-131-5-million-to-resolve-nyc-investigation-into-minimum-pay-law-compliance-8237c60e", "summary": "", "digestN": 49, "opinion": false}, {"n": 50, "source": "The Wall Street Journal", "section": "Business", "author": "", "headline": "Paramount Settles States’ Antitrust Suit, Clearing Way for Warner Megadeal", "url": "https://www.wsj.com/business/media/paramount-settles-states-antitrust-suit-clearing-way-for-warner-megadeal-95588926", "summary": "", "digestN": 50, "opinion": false}, {"n": 51, "source": "The Wall Street Journal", "section": "Business", "author": "", "headline": "The $1.5 Billion Concession That Unlocked Paramount’s Deal With California", "url": "https://www.wsj.com/business/media/how-david-ellison-ended-his-stalemate-with-california-e0e1cc9b", "summary": "", "digestN": 51, "opinion": false}, {"n": 52, "source": "The Wall Street Journal", "section": "Business", "author": "", "headline": "Radar and Radio Outage Roiled Flights Around New York City, Northeast", "url": "https://www.wsj.com/business/airlines/radar-radio-outage-roils-flights-around-new-york-city-northeast-5fde863e", "summary": "", "digestN": 52, "opinion": false}, {"n": 53, "source": "The Wall Street Journal", "section": "Business", "author": "", "headline": "Shopify to Use Meta’s Muse for Agentic Checkout", "url": "https://www.wsj.com/tech/shopify-to-use-metas-muse-for-agentic-checkout-d23947c0", "summary": "", "digestN": 53, "opinion": false}, {"n": 54, "source": "The Wall Street Journal", "section": "Business", "author": "", "headline": "Trump Proposes $10 Billion Fund for Middle East Energy Infrastructure Project", "url": "https://www.wsj.com/politics/policy/trump-proposes-10-billion-fund-for-middle-east-energy-infrastructure-project-43097512", "summary": "", "digestN": 54, "opinion": false}, {"n": 55, "source": "The Wall Street Journal", "section": "Business", "author": "", "headline": "Private-Equity Firms Buy Indie-Author Publisher Podium for More Than $400 Million", "url": "https://www.wsj.com/business/media/private-equity-firms-buy-indie-author-publisher-podium-for-more-than-400-million-33a209e3", "summary": "", "digestN": 55, "opinion": false}, {"n": 56, "source": "The Wall Street Journal", "section": "Business", "author": "", "headline": "CarMax Cuts Jobs for Third Time in 12 Months Amid Soft Auto Market", "url": "https://www.wsj.com/business/autos/carmax-cuts-jobs-for-third-time-in-12-months-amid-soft-auto-market-c49169dd", "summary": "", "digestN": 56, "opinion": false}, {"n": 57, "source": "The Wall Street Journal", "section": "Business", "author": "", "headline": "A Rocket Supply Crunch Is Making It Harder to Hitch a Ride to Space", "url": "https://www.wsj.com/business/a-rocket-supply-crunch-is-making-it-harder-to-hitch-a-ride-to-space-883f5e53", "summary": "", "digestN": 57, "opinion": false}, {"n": 58, "source": "The Wall Street Journal", "section": "Business", "author": "", "headline": "SpaceX’s Falcon 9 Phaseout Spurs Hunt for New Ways to Launch Payloads", "url": "https://www.wsj.com/logistics-report/spacexs-falcon-9-phaseout-spurs-hunt-for-new-ways-to-launch-payloads-585be3e8", "summary": "", "digestN": 58, "opinion": false}, {"n": 59, "source": "The Wall Street Journal", "section": "Business", "author": "", "headline": "Africa Digs Up Tons of Illicit Gold. A Fabled Refinery Wants to Make It Legit.", "url": "https://www.wsj.com/finance/commodities-futures/africa-digs-up-tons-of-illicit-gold-a-fabled-refinery-wants-to-make-it-legit-8104c5ab", "summary": "", "digestN": 59, "opinion": false}, {"n": 60, "source": "The Wall Street Journal", "section": "Economy", "author": "", "headline": "Dollar Jumps to 8-Week High as Fed Rate-Hike Bets Outweigh Lower Oil Prices", "url": "https://www.wsj.com/economy/central-banking/dollar-jumps-to-8-week-high-as-fed-rate-hike-bets-outweigh-lower-oil-prices-92e6cf72", "summary": "", "digestN": 60, "opinion": false}, {"n": 61, "source": "The Wall Street Journal", "section": "Economy", "author": "", "headline": "Business Surveys Point to Surprise Pickup for Eurozone", "url": "https://www.wsj.com/economy/business-surveys-point-to-surprise-pickup-for-eurozone-5bf47eb9", "summary": "", "digestN": 61, "opinion": false}, {"n": 62, "source": "The Wall Street Journal", "section": "Economy", "author": "", "headline": "Global Economy Stronger Than Expected, But Threats Mount, OECD Says", "url": "https://www.wsj.com/economy/global/global-economy-stronger-than-expected-but-threats-mount-oecd-says-7472619b", "summary": "", "digestN": 62, "opinion": false}, {"n": 63, "source": "The Wall Street Journal", "section": "Economy", "author": "", "headline": "AI Cycle Set to Offset Energy Hit for Asia Economies", "url": "https://www.wsj.com/economy/ai-cycle-set-to-offset-energy-hit-for-asia-economies-b9257568", "summary": "", "digestN": 63, "opinion": false}, {"n": 64, "source": "The Wall Street Journal", "section": "Economy", "author": "", "headline": "KB Home Cuts Margin Outlook as Housing Conditions Worsen", "url": "https://www.wsj.com/economy/housing/kb-home-cuts-margin-outlook-as-housing-conditions-worsen-caa020ae", "summary": "", "digestN": 64, "opinion": false}, {"n": 65, "source": "The Wall Street Journal", "section": "Economy", "author": "", "headline": "Fed’s Barkin Says One Rate Hike May Not Be Enough to Tame Inflation", "url": "https://www.wsj.com/economy/central-banking/feds-barkin-says-one-rate-hike-may-not-be-enough-to-tame-inflation-dd338c6c", "summary": "", "digestN": 65, "opinion": false}, {"n": 66, "source": "The Wall Street Journal", "section": "Economy", "author": "", "headline": "Eurozone Consumer Sentiment Knocked by Surging Energy Prices", "url": "https://www.wsj.com/economy/central-banking/eurozone-consumer-sentiment-knocked-by-surging-energy-prices-dd9668d7", "summary": "", "digestN": 66, "opinion": false}, {"n": 67, "source": "The Wall Street Journal", "section": "Economy", "author": "", "headline": "EU, Philippines Reach Breakthrough in Free-Trade Talks", "url": "https://www.wsj.com/economy/trade/eu-philippines-reach-breakthrough-in-free-trade-talks-0fdf1e12", "summary": "", "digestN": 67, "opinion": false}, {"n": 68, "source": "The Wall Street Journal", "section": "Economy", "author": "", "headline": "U.K. Government Borrowing Rose in August as Budget Looms", "url": "https://www.wsj.com/economy/uk-government-borrowing-rose-in-august-as-budget-looms-1b5afb71", "summary": "", "digestN": 68, "opinion": false}, {"n": 69, "source": "The Wall Street Journal", "section": "Economy", "author": "", "headline": "Beware Oil’s Second Strike on Inflation", "url": "https://www.wsj.com/economy/central-banking/beware-oils-second-strike-on-inflation-a07161d3", "summary": "", "digestN": 69, "opinion": true}, {"n": 70, "source": "The Wall Street Journal", "section": "Economy", "author": "", "headline": "Trump Looks to Sideline Canadian Potash With Belarusian Supply Deal", "url": "https://www.wsj.com/economy/trade/trump-looks-to-sideline-canadian-potash-with-belarusian-supply-deal-4a7eb147", "summary": "", "digestN": 70, "opinion": false}, {"n": 71, "source": "The Wall Street Journal", "section": "Economy", "author": "", "headline": "How Harley-Davidson, an American Icon, Became a Tariff Punching Bag", "url": "https://www.wsj.com/economy/trade/how-harley-davidson-an-american-icon-became-a-tariff-punching-bag-3eb09c06", "summary": "", "digestN": 71, "opinion": false}, {"n": 72, "source": "The Wall Street Journal", "section": "Economy", "author": "", "headline": "Anthropic’s IPO Will Happen a Month Later Than Expected", "url": "https://www.wsj.com/tech/ai/anthropics-ipo-will-happen-a-month-later-than-expected-a334b10e", "summary": "", "digestN": 72, "opinion": false}, {"n": 73, "source": "The Wall Street Journal", "section": "Economy", "author": "", "headline": "Weeks Before the Midterms, Almost Everything Is Getting More Expensive", "url": "https://www.wsj.com/economy/weeks-before-the-midterms-almost-everything-is-getting-more-expensive-5b201bb5", "summary": "", "digestN": 73, "opinion": false}, {"n": 74, "source": "The Wall Street Journal", "section": "Economy", "author": "", "headline": "Canada Producer Prices Continue to Increase on Energy Costs", "url": "https://www.wsj.com/economy/canada-producer-prices-continue-to-increase-on-energy-costs-caede917", "summary": "", "digestN": 74, "opinion": false}, {"n": 75, "source": "The Wall Street Journal", "section": "Economy", "author": "", "headline": "Fed Delivers First Rate Hike in Years With Unanimous Vote", "url": "https://www.wsj.com/economy/central-banking/fed-raises-rates-for-first-time-in-three-years-08539fbe", "summary": "", "digestN": 75, "opinion": false}, {"n": 76, "source": "The Wall Street Journal", "section": "Economy", "author": "", "headline": "Warsh Takes Hawkish Turn With Rate Rise and Hints of More to Come", "url": "https://www.wsj.com/economy/central-banking/warsh-takes-hawkish-turn-with-rate-rise-and-hints-of-more-to-come-d52c6ad9", "summary": "", "digestN": 76, "opinion": false}, {"n": 77, "source": "The Wall Street Journal", "section": "Economy", "author": "", "headline": "Trump Says He Backs Warsh After Central Bank Raised Interest Rates", "url": "https://www.wsj.com/economy/central-banking/trump-says-he-backs-warsh-after-central-bank-raised-interest-rates-cff88294", "summary": "", "digestN": 77, "opinion": false}, {"n": 78, "source": "The Wall Street Journal", "section": "Economy", "author": "", "headline": "Bank of Canada Flags Need for Rate Boost Should High Fuel Costs Spill Over, Minutes Say", "url": "https://www.wsj.com/economy/central-banking/bank-of-canada-flagged-need-for-rate-hike-should-high-fuel-costs-spill-over-minutes-say-d78b24bb", "summary": "", "digestN": 78, "opinion": false}, {"n": 79, "source": "The Wall Street Journal", "section": "Economy", "author": "", "headline": "U.S. Pressures Mexico to Box Out China’s AI Hardware Exports", "url": "https://www.wsj.com/economy/trade/u-s-pressures-mexico-to-box-out-chinas-ai-hardware-exports-4f708103", "summary": "", "digestN": 79, "opinion": false}, {"n": 80, "source": "The Wall Street Journal", "section": "Economy", "author": "", "headline": "What Fed Rate Increase Means for Your Money", "url": "https://www.wsj.com/finance/investing/what-fed-rate-increase-means-for-your-money-cf527fcd", "summary": "", "digestN": 80, "opinion": false}, {"n": 81, "source": "The Wall Street Journal", "section": "Markets & Finance", "author": "", "headline": "Stock Futures Slip as Markets Weigh Middle East Diplomacy", "url": "https://www.wsj.com/finance/investing/stock-futures-nudge-higher-as-markets-weigh-middle-east-diplomacy-b297db8c", "summary": "", "digestN": 81, "opinion": false}, {"n": 82, "source": "The Wall Street Journal", "section": "Markets & Finance", "author": "", "headline": "Add France to Your List of Investing Worries", "url": "https://www.wsj.com/finance/investing/add-france-to-your-list-of-investing-worries-00b3d9f5", "summary": "", "digestN": 82, "opinion": true}, {"n": 83, "source": "The Wall Street Journal", "section": "Markets & Finance", "author": "", "headline": "Swiss Parliament’s Upper House Backs Plan to Ease New Capital Demands on UBS", "url": "https://www.wsj.com/finance/banking/swiss-parliaments-upper-house-backs-plan-to-ease-new-capital-demands-on-ubs-e937c4ed", "summary": "", "digestN": 83, "opinion": false}, {"n": 84, "source": "The Wall Street Journal", "section": "Markets & Finance", "author": "", "headline": "Private-Credit Firms Are Buzzing About Getting In on JPMorgan’s Card Empire", "url": "https://www.wsj.com/finance/banking/private-credit-firms-are-buzzing-about-getting-in-on-jpmorgans-card-empire-a738f517", "summary": "", "digestN": 84, "opinion": false}, {"n": 85, "source": "The Wall Street Journal", "section": "Markets & Finance", "author": "", "headline": "$5 Billion Flurry of Nearly Identical Kalshi Trades Draws Scrutiny", "url": "https://www.wsj.com/finance/currencies/5-billion-flurry-of-nearly-identical-kalshi-trades-draws-scrutiny-fa53289d", "summary": "", "digestN": 85, "opinion": false}, {"n": 86, "source": "The Wall Street Journal", "section": "Markets & Finance", "author": "", "headline": "U.S. Stocks Mixed as AI Buzz Stokes Tech Gains", "url": "https://www.wsj.com/finance/stocks/u-s-stocks-mixed-as-ai-buzz-stokes-tech-gains-7d1bf50b", "summary": "", "digestN": 86, "opinion": false}, {"n": 87, "source": "The Wall Street Journal", "section": "Markets & Finance", "author": "", "headline": "Meta’s Muse Comes for Financial Stocks", "url": "https://www.wsj.com/finance/investing/metas-muse-comes-for-financial-stocks-17bdf11a", "summary": "", "digestN": 87, "opinion": false}, {"n": 88, "source": "The Wall Street Journal", "section": "Markets & Finance", "author": "", "headline": "Oil Falls on Hopes for U.S.-Iran Talks", "url": "https://www.wsj.com/finance/commodities-futures/oil-falls-as-mideast-developments-remain-in-focus-9a5a30e4", "summary": "", "digestN": 88, "opinion": false}, {"n": 89, "source": "The Wall Street Journal", "section": "Markets & Finance", "author": "", "headline": "Investors Demand Highest Yield at Two-Year U.S. Treasury Auction Since 2024", "url": "https://www.wsj.com/finance/investing/investors-demand-highest-yield-at-two-year-u-s-treasury-auction-since-2024-2daca035", "summary": "", "digestN": 89, "opinion": false}, {"n": 90, "source": "The Wall Street Journal", "section": "Markets & Finance", "author": "", "headline": "The Magnificent Seven Is Roaring Back, Fueled by Meta’s Rally", "url": "https://www.wsj.com/finance/stocks/meta-magnificent-seven-tech-stock-5a793174", "summary": "", "digestN": 90, "opinion": false}, {"n": 91, "source": "The Wall Street Journal", "section": "Markets & Finance", "author": "", "headline": "U.S. Stocks Rise, Nasdaq Hits Record, as Oil Slides, AI Bets Surge", "url": "https://www.wsj.com/finance/stocks/u-s-stocks-rise-nasdaq-hits-record-as-oil-slides-ai-bets-surge-6f886ab6", "summary": "", "digestN": 91, "opinion": false}, {"n": 92, "source": "The Wall Street Journal", "section": "Markets & Finance", "author": "", "headline": "Bitcoin Jumps Above $86,000 to 8-Month High", "url": "https://www.wsj.com/finance/currencies/bitcoin-jumps-above-85-000-to-8-month-high-050f3578", "summary": "", "digestN": 92, "opinion": false}, {"n": 93, "source": "The Wall Street Journal", "section": "Markets & Finance", "author": "", "headline": "Dividend Cuts Send a Bearish Signal", "url": "https://www.wsj.com/finance/stocks/dividend-cuts-send-a-bearish-signal-a57c2bc0", "summary": "", "digestN": 93, "opinion": true}, {"n": 94, "source": "The Wall Street Journal", "section": "Markets & Finance", "author": "", "headline": "A Safer Way to Bet on Nuclear", "url": "https://www.wsj.com/finance/investing/a-safer-way-to-bet-on-nuclear-2d9064f6", "summary": "", "digestN": 94, "opinion": true}, {"n": 95, "source": "The Wall Street Journal", "section": "Markets & Finance", "author": "", "headline": "Trafigura Creates Volare Shipping, Plans Oslo Listing", "url": "https://www.wsj.com/finance/trafigura-creates-volare-shipping-plans-oslo-listing-48081de6", "summary": "", "digestN": 95, "opinion": false}, {"n": 96, "source": "The Wall Street Journal", "section": "Markets & Finance", "author": "", "headline": "Crypto Blew Its Big Moment—and the Blame Game Has Begun", "url": "https://www.wsj.com/finance/currencies/crypto-blew-its-big-momentand-the-blame-game-has-begun-dff66a10", "summary": "", "digestN": 96, "opinion": false}, {"n": 97, "source": "The Wall Street Journal", "section": "Markets & Finance", "author": "", "headline": "Why It’s So Hard to Work Out What the Bond Market Is Telling Us", "url": "https://www.wsj.com/finance/investing/why-its-so-hard-to-work-out-what-the-bond-market-is-telling-us-aeac2d3a", "summary": "", "digestN": 97, "opinion": true}, {"n": 98, "source": "The Wall Street Journal", "section": "Markets & Finance", "author": "", "headline": "Don’t Count Out Corporate Bonds Just Because the Fed Is Raising Rates", "url": "https://www.wsj.com/finance/investing/dont-count-out-corporate-bonds-just-because-the-fed-is-raising-rates-de2e787a", "summary": "", "digestN": 98, "opinion": true}, {"n": 99, "source": "The Wall Street Journal", "section": "Markets & Finance", "author": "", "headline": "Buffett Hands Berkshire Chairman’s Seat to Son Howard", "url": "https://www.wsj.com/finance/stocks/buffett-hands-berkshire-chairmans-seat-to-son-howard-bd424456", "summary": "", "digestN": 99, "opinion": false}, {"n": 100, "source": "The Wall Street Journal", "section": "Markets & Finance", "author": "", "headline": "Why Warren Buffett’s Son Howie, Berkshire’s New Chairman, Is Also Its Guardian", "url": "https://www.wsj.com/finance/a-new-buffett-takes-on-the-task-of-preserving-berkshire-hathaways-culture-bdb9cc30", "summary": "", "digestN": 100, "opinion": false}, {"n": 101, "source": "The Wall Street Journal", "section": "Markets & Finance", "author": "", "headline": "See the 10-Year Treasury Yield’s Wild Ride on the Road to 5%", "url": "https://www.wsj.com/finance/investing/see-the-10-year-treasury-yields-wild-ride-on-the-road-to-5-22e4bbc2", "summary": "", "digestN": 101, "opinion": false}, {"n": 102, "source": "Bloomberg", "section": "Homepage", "author": "", "headline": "Xi and Trump Seek Safe AI Without Slowing the Race for Supremacy", "url": "https://www.bloomberg.com/news/articles/2026-09-23/xi-and-trump-seek-safe-ai-without-slowing-the-race-for-supremacy?srnd=homepage-americas", "summary": "", "digestN": 102, "opinion": false}, {"n": 103, "source": "Bloomberg", "section": "Homepage", "author": "", "headline": "US Mortgage Rates Surge Above 7% to a More Than Two-Year High", "url": "https://www.bloomberg.com/news/articles/2026-09-23/us-mortgage-rates-surge-above-7-to-a-more-than-two-year-high?srnd=homepage-americas", "summary": "", "digestN": 103, "opinion": false}, {"n": 104, "source": "Bloomberg", "section": "Homepage", "author": "", "headline": "Morgan Stanley Investment-Bank Deal List Leaked in Email Misfire", "url": "https://www.bloomberg.com/news/articles/2026-09-23/morgan-stanley-investment-bank-deal-list-leaked-in-email-misfire?srnd=homepage-americas", "summary": "", "digestN": 104, "opinion": false}, {"n": 105, "source": "Bloomberg", "section": "Homepage", "author": "", "headline": "Trump’s Grip on GOP Slips as Midterm Election Anxiety Sets In", "url": "https://www.bloomberg.com/news/articles/2026-09-23/trump-s-grip-on-gop-slips-as-midterm-election-anxiety-sets-in?srnd=homepage-americas", "summary": "", "digestN": 105, "opinion": false}, {"n": 106, "source": "Bloomberg", "section": "Homepage", "author": "", "headline": "Trump Flexes Legal Muscle to Expand Power Over US Elections", "url": "https://www.bloomberg.com/news/features/2026-09-23/trump-seeks-power-over-midterm-voting-with-redistricting-mail-ballots?srnd=homepage-americas", "summary": "", "digestN": 106, "opinion": false}, {"n": 107, "source": "Bloomberg", "section": "Homepage", "author": "", "headline": "Evidence of Modern-Day Slavery Taints Nucor Supply Chain in Brazil", "url": "https://www.bloomberg.com/news/features/2026-09-23/biggest-us-steelmaker-s-supply-chain-tainted-by-evidence-of-modern-slavery?srnd=homepage-americas", "summary": "", "digestN": 107, "opinion": false}, {"n": 108, "source": "Bloomberg", "section": "Homepage", "author": "", "headline": "The Tiny Magnet Maker That Attracted $1.6 Billion From Lutnick", "url": "https://www.bloomberg.com/news/features/2026-09-23/usa-rare-earth-how-the-magnet-maker-landed-1-6-billion-in-us-funding", "summary": "", "digestN": 108, "opinion": false}, {"n": 109, "source": "Bloomberg", "section": "Homepage", "author": "", "headline": "South Africa Central Bank Hikes Rates as War Fans Inflation", "url": "https://www.bloomberg.com/news/articles/2026-09-23/south-africa-central-bank-hikes-rates-as-iran-war-fans-inflation", "summary": "", "digestN": 109, "opinion": false}, {"n": 110, "source": "Bloomberg", "section": "Homepage", "author": "", "headline": "Bessemer Raises $5.75 Billion in New Funds, Expands Growth Efforts", "url": "https://www.bloomberg.com/news/articles/2026-09-23/bessemer-raises-5-75-billion-in-new-funds-expands-growth-efforts?srnd=homepage-americas", "summary": "", "digestN": 110, "opinion": false}, {"n": 111, "source": "Bloomberg", "section": "Homepage", "author": "", "headline": "McDonald’s Commits $8.5 Billion to Fend Off Competition", "url": "https://www.bloomberg.com/news/articles/2026-09-23/mcdonald-s-commits-8-5-billion-to-fend-off-fierce-competition?srnd=homepage-americas", "summary": "", "digestN": 111, "opinion": false}, {"n": 112, "source": "Bloomberg", "section": "Homepage", "author": "", "headline": "Europe Needs to Make Peace With Private Markets, Apollo CEO Says", "url": "https://www.bloomberg.com/news/articles/2026-09-23/europe-needs-to-make-peace-with-private-markets-apollo-ceo-says", "summary": "", "digestN": 112, "opinion": false}, {"n": 113, "source": "Bloomberg", "section": "Homepage", "author": "", "headline": "Goldman in Talks to Buy $37 Billion Credit Firm Palmer Square", "url": "https://www.bloomberg.com/news/articles/2026-09-22/goldman-in-talks-to-buy-37-billion-credit-firm-palmer-square", "summary": "", "digestN": 113, "opinion": false}, {"n": 114, "source": "Bloomberg", "section": "Homepage", "author": "", "headline": "Trump’s Fuel Export Ban Threat Sends European Diesel Soaring", "url": "https://www.bloomberg.com/news/articles/2026-09-23/trump-s-fuel-export-ban-threat-sends-european-diesel-soaring", "summary": "", "digestN": 114, "opinion": false}, {"n": 115, "source": "Bloomberg", "section": "Homepage", "author": "", "headline": "Modi Plans Canada Trip for Trade Deal, Speeds Up Mexico Talks", "url": "https://www.bloomberg.com/news/articles/2026-09-23/modi-plans-canada-trip-for-trade-deal-speeds-up-mexico-talks", "summary": "", "digestN": 115, "opinion": false}, {"n": 116, "source": "Bloomberg", "section": "Homepage", "author": "", "headline": "US, Korea Hail ‘Significant Progress’ on $350 Billion Trade Deal", "url": "https://www.bloomberg.com/news/articles/2026-09-23/us-korea-hail-significant-progress-on-350-billion-trade-deal", "summary": "", "digestN": 116, "opinion": false}, {"n": 117, "source": "Bloomberg", "section": "Homepage", "author": "", "headline": "Canada Movie Chain Cineplex Mulls Sale, Hires Goldman and TD", "url": "https://www.bloomberg.com/news/articles/2026-09-23/canada-movie-chain-cineplex-considers-sale-hires-goldman-and-td?srnd=homepage-americas", "summary": "", "digestN": 117, "opinion": false}, {"n": 118, "source": "Bloomberg", "section": "Homepage", "author": "", "headline": "Royal Caribbean Buys 50% Stake in Sandals Resorts for $3 Billion", "url": "https://www.bloomberg.com/news/articles/2026-09-23/royal-caribbean-buys-50-stake-in-sandals-resorts-for-3-billion", "summary": "", "digestN": 118, "opinion": false}, {"n": 119, "source": "Bloomberg", "section": "Homepage", "author": "", "headline": "Dollar Notches Seasonal End-of-September Gains on Hawkish Fed", "url": "https://www.bloomberg.com/news/articles/2026-09-23/dollar-usd-notches-seasonal-end-of-september-gains-on-hawkish-fed", "summary": "", "digestN": 119, "opinion": false}, {"n": 120, "source": "Bloomberg", "section": "Homepage", "author": "", "headline": "UK Growth Cools Over Budget Worries and Energy Shock, PMI Shows", "url": "https://www.bloomberg.com/news/articles/2026-09-23/uk-growth-cools-over-budget-worries-and-energy-shock-pmi-shows", "summary": "", "digestN": 120, "opinion": false}, {"n": 121, "source": "Bloomberg", "section": "Homepage", "author": "", "headline": "AI Skeptics Surrender Again as Traders Eye Path Forward for Tech", "url": "https://www.bloomberg.com/news/articles/2026-09-23/ai-skeptics-surrender-again-as-traders-eye-path-forward-for-tech", "summary": "", "digestN": 121, "opinion": false}, {"n": 122, "source": "Bloomberg", "section": "Homepage", "author": "", "headline": "Bitcoin ETF Flows Turn Positive After $4.6 Billion Rebound", "url": "https://www.bloomberg.com/news/articles/2026-09-23/bitcoin-etf-flows-turn-positive-after-4-6-billion-rebound", "summary": "", "digestN": 122, "opinion": false}, {"n": 123, "source": "Bloomberg", "section": "Homepage", "author": "", "headline": "Chinese AI Stocks Fall on Report of DeepSeek, Moonshot Probe", "url": "https://www.bloomberg.com/news/articles/2026-09-23/chinese-ai-firms-fall-on-report-of-deepseek-moonshot-probe", "summary": "", "digestN": 123, "opinion": false}, {"n": 124, "source": "Bloomberg", "section": "Homepage", "author": "", "headline": "SoftBank Offers Record Yields on Jumbo Junk Bonds in AI Push", "url": "https://www.bloomberg.com/news/articles/2026-09-23/softbank-starts-jumbo-high-yield-bond-sale-to-finance-ai-push", "summary": "", "digestN": 124, "opinion": false}, {"n": 125, "source": "Bloomberg", "section": "Homepage", "author": "", "headline": "OpenAI’s Sam Altman to Promote AI Standards During UN Speech", "url": "https://www.bloomberg.com/news/articles/2026-09-23/openai-s-sam-altman-to-promote-ai-standards-during-un-speech", "summary": "", "digestN": 125, "opinion": false}, {"n": 126, "source": "Bloomberg", "section": "Homepage", "author": "", "headline": "The US Is Badly Losing Its Trade War With China", "url": "https://www.bloomberg.com/opinion/articles/2026-09-23/us-trade-policy-on-china-has-failed-by-its-own-standards", "summary": "", "digestN": 126, "opinion": true}, {"n": 127, "source": "Bloomberg", "section": "Homepage", "author": "", "headline": "Don’t Believe the Hype About China’s Oil Buying", "url": "https://www.bloomberg.com/opinion/articles/2026-09-23/china-isn-t-buying-more-oil-it-s-buying-from-different-markets", "summary": "", "digestN": 127, "opinion": true}, {"n": 128, "source": "Bloomberg", "section": "Homepage", "author": "", "headline": "Stocks and Bonds Slip as Oil Ends Run of Losses: Markets Wrap", "url": "https://www.bloomberg.com/news/articles/2026-09-22/stock-market-today-dow-s-p-live-updates", "summary": "", "digestN": 128, "opinion": false}, {"n": 129, "source": "Financial Times", "section": "Front Page", "author": "", "headline": "US government and Gulf billionaires back Todd Boehly bid for Lukoil assets", "url": "https://www.ft.com/content/152aa77b-977f-4607-8a09-77291f85d2a0", "summary": "", "digestN": 129, "opinion": false}, {"n": 130, "source": "Financial Times", "section": "Front Page", "author": "", "headline": "UK data centre group left biggest customer ByteDance unnamed in $35bn IPO push", "url": "https://www.ft.com/content/d1090476-7be6-4bba-ae2a-f417499e820a", "summary": "", "digestN": 130, "opinion": false}, {"n": 131, "source": "Financial Times", "section": "Front Page", "author": "", "headline": "Global banks threaten to shift investment away from UK if taxes rise", "url": "https://www.ft.com/content/ab694096-0acf-4e13-9726-ec339a082a99", "summary": "", "digestN": 131, "opinion": false}, {"n": 132, "source": "Financial Times", "section": "Front Page", "author": "", "headline": "McDonald’s bets on chicken", "url": "https://www.ft.com/content/1d7daa8f-e8bb-436c-ad8b-b6d097e4107f", "summary": "", "digestN": 132, "opinion": false}, {"n": 133, "source": "Financial Times", "section": "Front Page", "author": "", "headline": "Countries cancel Iran flights after US threatens to ‘shut down’ airlines", "url": "https://www.ft.com/content/7a98e756-92a3-45e4-9630-187d20685e79", "summary": "", "digestN": 133, "opinion": false}, {"n": 134, "source": "Financial Times", "section": "Companies & Markets", "author": "", "headline": "Royal Caribbean nears deal for Sandals valuing resorts at more than $6bn", "url": "https://www.ft.com/content/be468cf8-e450-46d8-891f-67bc79ffd7b3", "summary": "", "digestN": 134, "opinion": false}, {"n": 135, "source": "Financial Times", "section": "Companies & Markets", "author": "", "headline": "Airtel Money poised to launch one of London’s biggest IPOs in recent years", "url": "https://www.ft.com/content/62a6939f-7e24-492e-bdf6-b9ab9e1d3578", "summary": "", "digestN": 135, "opinion": false}, {"n": 136, "source": "Financial Times", "section": "Companies & Markets", "author": "", "headline": "Mercedes-Benz aims to close AI gap with China rivals through Wayve deal", "url": "https://www.ft.com/content/4ed7bccb-7d02-485f-aed6-9e7b0244ac78", "summary": "", "digestN": 136, "opinion": false}, {"n": 137, "source": "Financial Times", "section": "Companies & Markets", "author": "", "headline": "Warburg Pincus and CD&R near deal to buy Canaccord’s UK wealth division", "url": "https://www.ft.com/content/2715d69d-15d1-42af-a5e5-cb2a251a1ff6", "summary": "", "digestN": 137, "opinion": false}, {"n": 138, "source": "Financial Times", "section": "Companies & Markets", "author": "", "headline": "Polymarket presses Europe to treat its bets as financial products", "url": "https://www.ft.com/content/ec52d0ab-3f68-476f-b308-b8e682d9c75b", "summary": "", "digestN": 138, "opinion": false}, {"n": 139, "source": "Financial Times", "section": "Companies & Markets", "author": "", "headline": "UK government borrowing surges in blow to Healey ahead of Budget", "url": "https://www.ft.com/content/a17b2217-e49f-432c-8fdb-31e9bc3a4361", "summary": "", "digestN": 139, "opinion": false}, {"n": 140, "source": "Financial Times", "section": "Companies & Markets", "author": "", "headline": "SoftBank’s $50bn data centre group slows IPO", "url": "https://www.ft.com/content/4a80f076-d1bb-4492-a854-0833d981d5f4", "summary": "", "digestN": 140, "opinion": false}, {"n": 141, "source": "Financial Times", "section": "Companies & Markets", "author": "", "headline": "Deutsche Bank’s asset manager explores curbs on German property funds", "url": "https://www.ft.com/content/d773c1d5-b515-48d7-9713-14c253972e3a", "summary": "", "digestN": 141, "opinion": false}, {"n": 142, "source": "Financial Times", "section": "Companies & Markets", "author": "", "headline": "World’s biggest derivatives exchange finally set for $46bn market debut", "url": "https://www.ft.com/content/23da023b-8be8-433d-9b11-49bc825076c9", "summary": "", "digestN": 142, "opinion": false}, {"n": 143, "source": "Financial Times", "section": "Companies & Markets", "author": "", "headline": "L&G to cut a tenth of its workforce", "url": "https://www.ft.com/content/2f652ff5-b707-4d96-abb4-31b90a77908c", "summary": "", "digestN": 143, "opinion": false}, {"n": 144, "source": "Financial Times", "section": "Companies & Markets", "author": "", "headline": "OECD sounds alarm on surging government bond yields", "url": "https://www.ft.com/content/6c13ada9-f325-428b-b91e-bffcf92eddad", "summary": "", "digestN": 144, "opinion": false}, {"n": 145, "source": "Financial Times", "section": "Companies & Markets — Opinion", "author": "", "headline": "Rivals Revolut and Nubank go head to head in bid to crack US banking market", "url": "https://www.ft.com/content/7ec7e4e7-94ed-4627-9040-18867ccdaa53", "summary": "", "digestN": 145, "opinion": true}, {"n": 146, "source": "Financial Times", "section": "Companies & Markets — Opinion", "author": "", "headline": "How private equity ended up in limbo", "url": "https://www.ft.com/content/2b307c1e-cd98-4666-91d5-000b1dc7bbd1", "summary": "", "digestN": 146, "opinion": true}, {"n": 147, "source": "Financial Times", "section": "Companies & Markets — Opinion", "author": "", "headline": "Interview. Ozempic-maker Novo open to upgrading US listing", "url": "https://www.ft.com/content/00d53ca3-725f-4fa8-b452-cef562a13514", "summary": "", "digestN": 147, "opinion": false}, {"n": 148, "source": "Financial Times", "section": "Companies & Markets — Opinion", "author": "", "headline": "Why EU companies are helping their Chinese rivals", "url": "https://www.ft.com/content/44ef48c9-13a4-4823-aa8f-cc9e2dfb5d17", "summary": "", "digestN": 148, "opinion": true}, {"n": 149, "source": "Financial Times", "section": "Companies & Markets — Opinion", "author": "", "headline": "Reasons to be bullish on equities", "url": "https://www.ft.com/content/24886f4a-0567-4afc-8d52-62282b252302", "summary": "", "digestN": 149, "opinion": true}, {"n": 150, "source": "Financial Times", "section": "Companies & Markets — Opinion", "author": "", "headline": "Private credit’s “soft” defaults", "url": "https://www.ft.com/content/04c5abf0-d7c4-47ca-9391-4a154c14e178", "summary": "", "digestN": 150, "opinion": true}, {"n": 151, "source": "Financial Times", "section": "Companies & Markets — Opinion", "author": "", "headline": "Lex in depth: the challenging maths of Anthropic’s IPO", "url": "https://www.ft.com/content/01a7b883-452c-4902-b40e-e3957de5d89e", "summary": "", "digestN": 151, "opinion": true}, {"n": 152, "source": "Financial Times", "section": "Companies & Markets — Opinion", "author": "", "headline": "Rate rises should not be ‘the only game in town’", "url": "https://www.ft.com/content/d96c37bb-0b9b-4b2f-a6f7-4dbfce047d81", "summary": "", "digestN": 152, "opinion": true}, {"n": 153, "source": "Financial Times", "section": "Companies & Markets — Recommended", "author": "", "headline": "Silicon Valley bets on the impossible again", "url": "https://www.ft.com/content/0c440134-686f-4b55-ab35-2afe4e6a3f91", "summary": "", "digestN": 153, "opinion": false}, {"n": 154, "source": "Financial Times", "section": "Companies & Markets — Recommended", "author": "", "headline": "China tightens grip on Europe’s car supply chain", "url": "https://www.ft.com/content/9f700b37-ac05-434c-9b70-3a7fe065c87e", "summary": "", "digestN": 154, "opinion": false}, {"n": 155, "source": "Financial Times", "section": "Companies & Markets — Recommended", "author": "", "headline": "European carmakers turn to Chinese rivals to fill factory floors", "url": "https://www.ft.com/content/9a59bb55-d060-4002-bc4f-4563aa598b02", "summary": "", "digestN": 155, "opinion": false}, {"n": 156, "source": "Financial Times", "section": "Companies & Markets — Recommended", "author": "", "headline": "China’s best cars have yet to hit Europe", "url": "https://www.ft.com/content/de2f1e69-791e-49d3-98f0-925b2697a5c5", "summary": "", "digestN": 156, "opinion": false}, {"n": 157, "source": "Financial Times", "section": "Companies & Markets — Recommended", "author": "", "headline": "The unlikely corporate winners of AI", "url": "https://www.ft.com/content/5ede9d4d-3989-49b5-a282-4722c8d8fc59", "summary": "", "digestN": 157, "opinion": false}, {"n": 158, "source": "Financial Times", "section": "Companies & Markets — Recommended", "author": "", "headline": "The reclusive heirs in line for billions when Europe’s top tankmaker lists", "url": "https://www.ft.com/content/a7123e93-beda-4ede-a96c-58b584b67498", "summary": "", "digestN": 158, "opinion": false}, {"n": 159, "source": "Financial Times", "section": "Companies & Markets — Most Read", "author": "", "headline": "FT Investigations. Kremlin-backed forgery scheme moved $6.9bn through global banks", "url": "https://www.ft.com/content/3848a4ad-1426-4352-ba86-ef1279c4ffd1", "summary": "", "digestN": 159, "opinion": false}, {"n": 160, "source": "Financial Times", "section": "Companies & Markets — Most Read", "author": "", "headline": "Why Blackstone’s latest plans at Lloyd’s of London have sparked a firestorm", "url": "https://www.ft.com/content/8576e3d2-6fe3-4bfe-af16-10edb76ac8bf", "summary": "", "digestN": 160, "opinion": false}, {"n": 161, "source": "Financial Times", "section": "Companies & Markets — Most Read", "author": "", "headline": "AI staff complain of mental toll over fears of threat to society", "url": "https://www.ft.com/content/60870960-f433-48ca-bc2c-708686a69ae7", "summary": "", "digestN": 161, "opinion": false}, {"n": 162, "source": "Financial Times", "section": "Companies & Markets — Most Read", "author": "", "headline": "Anthropic and OpenAI release cheaper models as price war intensifies", "url": "https://www.ft.com/content/0e50a3c6-9731-4b29-a21e-4e0ff89a595e", "summary": "", "digestN": 162, "opinion": false}, {"n": 163, "source": "Financial Times", "section": "Companies & Markets — Most Read", "author": "", "headline": "Trump presses Zelenskyy to stop hitting Russian refineries", "url": "https://www.ft.com/content/adb80fa3-b54a-4b3d-8ed2-0ebe55a5e05e", "summary": "", "digestN": 163, "opinion": false}, {"n": 164, "source": "Financial Times", "section": "Companies & Markets — Most Read", "author": "", "headline": "Qantas pushes ahead with new ultra-long flights despite high fuel prices", "url": "https://www.ft.com/content/276f5264-c3e1-418b-8acc-cd3d4f1ed31b", "summary": "", "digestN": 164, "opinion": false}, {"n": 165, "source": "Financial Times", "section": "Companies & Markets — Most Read", "author": "", "headline": "Private equity has a new kind of SaaS: swimming as a service", "url": "https://www.ft.com/content/f6962aaf-417f-4722-8316-0a0049af55aa", "summary": "", "digestN": 165, "opinion": true}, {"n": 166, "source": "Reuters", "section": "News", "author": "", "headline": "Wall St futures steady with focus on Mideast talks, US-China summit", "url": "https://www.reuters.com/world/china/wall-st-futures-steady-with-focus-mideast-talks-us-china-summit-2026-09-23/", "summary": "", "digestN": 166, "opinion": false}, {"n": 167, "source": "Reuters", "section": "News", "author": "", "headline": "Oil falls on increased Gulf supply and hopes for US-Iran talks", "url": "https://www.reuters.com/business/energy/oil-falls-increased-gulf-supply-hopes-us-iran-talks-2026-09-23/", "summary": "", "digestN": 167, "opinion": false}, {"n": 168, "source": "Reuters", "section": "News", "author": "", "headline": "Asia stocks ride tech wave higher, oil stays subdued", "url": "https://www.reuters.com/world/china/global-markets-global-markets-2026-09-23/", "summary": "", "digestN": 168, "opinion": false}, {"n": 169, "source": "Reuters", "section": "News", "author": "", "headline": "Euro zone business activity posts surprise upturn in September, PMI shows", "url": "https://www.reuters.com/business/euro-zone-business-activity-posts-surprise-upturn-september-pmi-shows-2026-09-23/", "summary": "", "digestN": 169, "opinion": false}, {"n": 170, "source": "Reuters", "section": "News", "author": "", "headline": "There's a reason Trump is the only one talking about 1% rates", "url": "https://www.reuters.com/business/theres-reason-trump-is-only-one-talking-about-1-rates-2026-09-23/", "summary": "", "digestN": 170, "opinion": false}, {"n": 171, "source": "Reuters", "section": "News", "author": "", "headline": "Gulf bourses edge higher as Saudi pipeline resumes operations", "url": "https://www.reuters.com/world/middle-east/gulf-bourses-edge-higher-saudi-pipeline-resumes-operations-2026-09-23/", "summary": "", "digestN": 171, "opinion": false}, {"n": 172, "source": "Reuters", "section": "News", "author": "", "headline": "Dollar holds near 2-month high as markets weigh rate hikes, Iran diplomacy", "url": "https://www.reuters.com/world/asia-pacific/dollar-holds-near-2-month-high-markets-weigh-rate-hikes-iran-diplomacy-2026-09-23/", "summary": "", "digestN": 172, "opinion": false}, {"n": 173, "source": "Reuters", "section": "News", "author": "", "headline": "Shipping traffic via Strait of Hormuz stays below 10-day average", "url": "https://www.reuters.com/world/middle-east/shipping-traffic-via-strait-hormuz-stays-below-10-day-average-data-shows-2026-09-23/", "summary": "", "digestN": 173, "opinion": false}, {"n": 174, "source": "CBC", "section": "News", "author": "", "headline": "The NSLC has gone through about 90% of its American alcohol stockpile", "url": "https://www.cbc.ca/news/canada/nova-scotia/nslc-american-alcohol-stockpile-first-quarter-results-2026-27-9.7353757", "summary": "", "digestN": 174, "opinion": false}, {"n": 175, "source": "CBC", "section": "News", "author": "", "headline": "Military commander vows fast action on AI and robots", "url": "https://www.cbc.ca/news/business/canada-ai-robots-miliatary-9.7353399", "summary": "", "digestN": 175, "opinion": false}, {"n": 176, "source": "CBC", "section": "News", "author": "", "headline": "Sask. premier unsurprised Trump says U.S. will continue with Canadian potash", "url": "https://www.cbc.ca/news/canada/saskatchewan/premier-not-surprised-that-president-donald-trump-now-says-u-s-will-continue-with-canadian-potash-9.7354418", "summary": "", "digestN": 176, "opinion": false}, {"n": 177, "source": "CBC", "section": "News", "author": "", "headline": "Canada's 4 largest airports to be opened up to private investment, Carney says", "url": "https://www.cbc.ca/news/politics/carney-airport-private-investment-9.7344327", "summary": "", "digestN": 177, "opinion": false}, {"n": 178, "source": "CBC", "section": "News", "author": "", "headline": "U.S. import ban on Canadian molasses highlights sticky sugar industry feud", "url": "https://www.cbc.ca/news/canada/us-ban-canadian-molasses-sugar-refiner-sucro-9.7345748", "summary": "", "digestN": 178, "opinion": false}, {"n": 179, "source": "CBC", "section": "News", "author": "", "headline": "U.S. Federal Reserve raises interest rates for 1st time in 3 years", "url": "https://www.cbc.ca/news/business/us-interest-rate-hike-sept-2026-9.7346557", "summary": "", "digestN": 179, "opinion": false}, {"n": 180, "source": "CBC", "section": "News", "author": "", "headline": "'Don't close, don't sell': Union implores Stellantis to keep Brampton plant", "url": "https://www.cbc.ca/news/canada/toronto/stellantis-brampton-plant-union-talks-9.7348153", "summary": "", "digestN": 180, "opinion": false}, {"n": 181, "source": "CBC", "section": "News", "author": "", "headline": "'Nuclear' threat or market boom? AI race looms over Trump-Xi talks", "url": "https://www.cbc.ca/news/world/donald-trump-xi-jinping-summit-washington-ai-9.7353943", "summary": "", "digestN": 181, "opinion": false}, {"n": 182, "source": "BBC", "section": "News", "author": "", "headline": "White House rolling out red carpet for historic Xi Jinping visit", "url": "https://www.bbc.com/news/articles/c6n9w410v3vzo", "summary": "", "digestN": 182, "opinion": false}, {"n": 183, "source": "BBC", "section": "News", "author": "", "headline": "Huge data centres rise at 'China speed' to power its AI ambitions", "url": "https://www.bbc.com/news/articles/cm5ydz4kl65ro", "summary": "", "digestN": 183, "opinion": false}, {"n": 184, "source": "BBC", "section": "News", "author": "", "headline": "US and Iran hold first talks since June after Trump's 'annihilation' threat", "url": "https://www.bbc.com/news/articles/ck62m1631d7po", "summary": "", "digestN": 184, "opinion": false}, {"n": 185, "source": "BBC", "section": "News", "author": "", "headline": "DoorDash admits it 'screwed up' after underpaying New York workers", "url": "https://www.bbc.com/news/articles/cjr4v72y6p4eo", "summary": "", "digestN": 185, "opinion": false}, {"n": 186, "source": "BBC", "section": "News", "author": "", "headline": "Sir Jim Ratcliffe's Ineos to mothball three major chemical sites", "url": "https://www.bbc.com/news/articles/cw305ynd69n6o", "summary": "", "digestN": 186, "opinion": false}, {"n": 187, "source": "BBC", "section": "News", "author": "", "headline": "UK economy will grow by less than expected next year, OECD says", "url": "https://www.bbc.com/news/articles/c607ly09y7rlo", "summary": "", "digestN": 187, "opinion": false}, {"n": 188, "source": "BBC", "section": "News", "author": "", "headline": "Burnham warned Iran war could hit UK growth next year", "url": "https://www.bbc.com/news/articles/c5y3egv4m4mo", "summary": "", "digestN": 188, "opinion": false}, {"n": 189, "source": "BBC", "section": "News", "author": "", "headline": "First round of US-Iran talks end with 'encouraging progress', mediators say", "url": "https://www.bbc.com/news/articles/cwy0q41v1lzo", "summary": "", "digestN": 189, "opinion": false}, {"n": 190, "source": "Featured", "section": "World", "author": "", "headline": "South Africa mass shooting: Gunmen kill 11 at house in Durban", "url": "https://www.bbc.com/news/articles/crgjqxzl097eo", "summary": "", "digestN": 190, "opinion": false, "featured": "World"}, {"n": 191, "source": "Featured", "section": "Sports", "author": "", "headline": "Lakers buyers lay out plans to reach $30 billion valuation", "url": "https://www.wsj.com/finance/lakers-buyers-lay-out-plans-to-reach-30-billion-valuation-in-pitch-to-investors-66945709", "summary": "", "digestN": 191, "opinion": false, "featured": "Sports"}, {"n": 192, "source": "Featured", "section": "Arts", "author": "", "headline": "Private-equity firms buy indie-author publisher Podium for more than $400 million", "url": "https://www.wsj.com/business/media/private-equity-firms-buy-indie-author-publisher-podium-for-more-than-400-million-33a209e3", "summary": "", "digestN": 192, "opinion": false, "featured": "Arts"}, {"n": 193, "source": "Featured", "section": "Culture", "author": "", "headline": "Princess Diana's brother, eyewitness to history, sparks royal ruckus", "url": "https://www.reuters.com/world/uk/princess-dianas-brother-eyewitness-history-sparks-royal-ruckus-2026-09-22/", "summary": "", "digestN": 193, "opinion": false, "featured": "Culture"}, {"n": 194, "source": "Featured", "section": "World", "author": "", "headline": "Cybercrime feud erupts on dark web as notorious group claims hijack of rival's website", "url": "https://www.reuters.com/legal/government/cybercrime-feud-erupts-dark-web-notorious-group-claims-hijack-rivals-website-2026-09-21/", "summary": "", "digestN": 194, "opinion": false, "featured": "World"}]};
+    const $ = (id) => document.getElementById(id);
+    const state = { stories: [], i: 0, selected: new Set() };
+    const card = $('card');
+    const stage = $('stage');
+    const toastEl = $('toast');
+
+    function toast(msg) {
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      clearTimeout(toastEl._t);
+      toastEl._t = setTimeout(() => toastEl.classList.remove('show'), 1800);
+    }
+
+    function current() {
+      return state.stories[state.i] || null;
+    }
+
+    function renderSelected() {
+      const nums = [...state.selected].map(n => {
+        const st = state.stories.find(x => x.n === n);
+        return (st && st.digestN != null) ? st.digestN : n;
+      }).sort((a,b)=>a-b);
+      $('btnCopy').textContent = nums.length
+        ? `Copy brief list (${nums.length})`
+        : 'Copy brief list';
+      $('selectedList').textContent = nums.length
+        ? `Selected: ${nums.join(', ')} — paste into News Headlines chat for detailed briefs.`
+        : 'No stories selected for briefing yet.';
+      const brief = card.querySelector('[data-brief]');
+      const s = current();
+      if (brief && s) {
+        const on = state.selected.has(s.n);
+        brief.classList.toggle('on', on);
+        brief.textContent = on ? 'Selected ✓' : 'Brief me';
+      }
+      const pillHost = card.querySelector('[data-meta]');
+      if (pillHost && s) {
+        const existing = pillHost.querySelector('.pill.selected');
+        const on = state.selected.has(s.n);
+        if (on && !existing) {
+          const p = document.createElement('span');
+          p.className = 'pill selected';
+          p.textContent = 'For brief';
+          pillHost.appendChild(p);
+        } else if (!on && existing) existing.remove();
+      }
+    }
+
+    function updateChrome() {
+      const total = state.stories.length || 1;
+      const i = state.i;
+      $('progressFill').style.width = (((i + 1) / total) * 100) + '%';
+      $('progressLabel').textContent = `${i + 1} / ${total}`;
+      const s = current();
+      const jump = $('jumpN');
+      if (jump && document.activeElement !== jump) {
+        const num = s && s.digestN != null ? s.digestN : (s ? s.n : '');
+        jump.value = num === '' ? '' : String(num);
+        jump.max = String(total);
+      }
+      if (s) {
+        document.title = `${s.source}: ${s.headline} · Headlines`;
+        const hashNum = s.digestN != null ? s.digestN : s.n;
+        const want = '#' + hashNum;
+        if (location.hash !== want) {
+          history.replaceState(null, '', want);
+        }
+      }
+      renderSelected();
+    }
+
+    function paintCard() {
+      const s = current();
+      card.innerHTML = '';
+      if (!s) return;
+
+      const top = document.createElement('div');
+      top.className = 'card-top';
+      const srcBlock = document.createElement('div');
+      srcBlock.className = 'source-block';
+      const source = document.createElement('h2');
+      source.className = 'source';
+      source.textContent = s.source || 'Source';
+      srcBlock.appendChild(source);
+      if (s.section || s.author) {
+        const row = document.createElement('div');
+        row.className = 'section-row';
+        const sec = document.createElement('div');
+        sec.className = 'section-line';
+        sec.textContent = s.section || '';
+        row.appendChild(sec);
+        if (s.author) {
+          const au = document.createElement('div');
+          au.className = 'author';
+          au.textContent = s.author;
+          row.appendChild(au);
+        }
+        srcBlock.appendChild(row);
+      }
+      top.appendChild(srcBlock);
+      const dig = document.createElement('div');
+      dig.className = 'digest';
+      dig.textContent = s.digestN != null ? `Digest #${s.digestN}` : `#${s.n}`;
+      top.appendChild(dig);
+      card.appendChild(top);
+
+      const h = document.createElement('h1');
+      h.className = 'headline';
+      h.textContent = s.headline;
+      card.appendChild(h);
+
+      const sum = document.createElement('p');
+      sum.className = 'summary';
+      sum.textContent = s.summary || 'Open the story, or tap Brief me and copy the list back into chat.';
+      card.appendChild(sum);
+
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      meta.dataset.meta = '1';
+      if (s.opinion) {
+        const p = document.createElement('span');
+        p.className = 'pill opinion';
+        p.textContent = 'Opinion';
+        meta.appendChild(p);
+      }
+      if (s.featured) {
+        const p = document.createElement('span');
+        p.className = 'pill featured';
+        p.textContent = s.featured;
+        meta.appendChild(p);
+      }
+      card.appendChild(meta);
+
+      const open = document.createElement('a');
+      open.className = 'open';
+      open.href = s.url;
+      open.target = '_blank';
+      open.rel = 'noopener noreferrer';
+      open.textContent = 'Open article →';
+      open.addEventListener('click', (e) => openExternal(s.url, e));
+      card.appendChild(open);
+
+      const actions = document.createElement('div');
+      actions.className = 'actions';
+      const skip = document.createElement('button');
+      skip.type = 'button';
+      skip.textContent = 'Skip';
+      skip.addEventListener('click', () => go(1));
+      const brief = document.createElement('button');
+      brief.type = 'button';
+      brief.className = 'good';
+      brief.dataset.brief = '1';
+      brief.textContent = 'Brief me';
+      brief.addEventListener('click', () => toggleBrief(s.n));
+      actions.appendChild(skip);
+      actions.appendChild(brief);
+      card.appendChild(actions);
+
+      card.style.transform = 'translateX(0)';
+      card.style.opacity = '1';
+      updateChrome();
+    }
+
+
+    // Publisher apps (esp. Globe) claim https links via App Links / Universal Links
+    // and then fail to load. Prefer the browser the user already has signed-in.
+    function openExternal(url, e) {
+      if (e) e.preventDefault();
+      if (!url) return;
+      const ua = navigator.userAgent || '';
+      if (/Android/i.test(ua)) {
+        try {
+          const u = new URL(url);
+          const intentUrl =
+            'intent://' + u.host + u.pathname + u.search + u.hash +
+            '#Intent;scheme=https;package=com.android.chrome;' +
+            'S.browser_fallback_url=' + encodeURIComponent(url) + ';end';
+          window.location.href = intentUrl;
+          return;
+        } catch (_) {}
+      }
+      if (/iPhone|iPad|iPod/i.test(ua)) {
+        window.open(siteUrl('open.html?u=') + encodeURIComponent(url), '_blank', 'noopener,noreferrer');
+        return;
+      }
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+
+    function go(delta) {
+      if (!state.stories.length) return;
+      const next = Math.max(0, Math.min(state.stories.length - 1, state.i + delta));
+      if (next === state.i) {
+        // bounce
+        card.style.transform = `translateX(${delta < 0 ? 12 : -12}px)`;
+        setTimeout(() => { card.style.transform = 'translateX(0)'; }, 120);
+        return;
+      }
+      const dir = next > state.i ? -1 : 1;
+      card.style.transform = `translateX(${dir * 28}px)`;
+      card.style.opacity = '0.35';
+      setTimeout(() => {
+        state.i = next;
+        paintCard();
+      }, 120);
+    }
+
+    function indexForNumber(num) {
+      const n = Number(num);
+      if (!Number.isFinite(n) || n < 1) return -1;
+      let idx = state.stories.findIndex(s => s.digestN === n);
+      if (idx < 0) idx = state.stories.findIndex(s => s.n === n);
+      return idx;
+    }
+
+    function goToNumber(num, { silent } = {}) {
+      const idx = indexForNumber(num);
+      if (idx < 0) {
+        if (!silent) toast(`No story #${num}`);
+        return false;
+      }
+      if (idx === state.i) {
+        paintCard();
+        return true;
+      }
+      card.style.transform = 'translateX(0)';
+      card.style.opacity = '0.35';
+      setTimeout(() => {
+        state.i = idx;
+        paintCard();
+      }, 80);
+      return true;
+    }
+
+    function parseJumpTarget() {
+      const params = new URLSearchParams(location.search);
+      const q = params.get('n') || params.get('story') || params.get('go');
+      if (q) return q;
+      const h = (location.hash || '').replace(/^#/, '').trim();
+      if (/^\d+$/.test(h)) return h;
+      const m = h.match(/^(?:n|story|go)=(\d+)$/i);
+      return m ? m[1] : null;
+    }
+
+    function toggleBrief(n) {
+      if (state.selected.has(n)) state.selected.delete(n);
+      else state.selected.add(n);
+      const st = state.stories.find(x => x.n === n);
+      const label = (st && st.digestN != null) ? st.digestN : n;
+      toast(state.selected.has(n) ? `Added #${label}` : `Removed #${label}`);
+      renderSelected();
+    }
+
+    async function copyList() {
+      const nums = [...state.selected].map(n => {
+        const st = state.stories.find(x => x.n === n);
+        return (st && st.digestN != null) ? st.digestN : n;
+      }).sort((a,b)=>a-b);
+      if (!nums.length) {
+        toast('Select at least one story first');
+        return;
+      }
+      const text = nums.join(', ');
+      try {
+        await navigator.clipboard.writeText(text);
+        toast(`Copied: ${text}`);
+      } catch {
+        prompt('Copy these numbers into News Headlines chat:', text);
+      }
+    }
+
+    $('btnNext').onclick = () => go(1);
+    $('btnPrev').onclick = () => go(-1);
+    $('btnCopy').onclick = copyList;
+    $('jumpForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const v = $('jumpN').value.trim();
+      if (!v) return;
+      goToNumber(v);
+      $('jumpN').blur();
+    });
+    $('progressLabel').addEventListener('click', () => {
+      const el = $('jumpN');
+      el.focus();
+      el.select();
+    });
+
+    window.addEventListener('hashchange', () => {
+      const t = parseJumpTarget();
+      if (t) goToNumber(t, { silent: true });
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+      if (e.key === 'ArrowRight' || e.key === 'j') go(1);
+      if (e.key === 'ArrowLeft' || e.key === 'k') go(-1);
+      if (e.key === 'g' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        const el = $('jumpN');
+        el.focus();
+        el.select();
+      }
+      if (e.key === ' ' || e.key === 'b') {
+        e.preventDefault();
+        const s = current();
+        if (s) toggleBrief(s.n);
+      }
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) copyList();
+    });
+
+    // Pointer swipe on the stage (works for touch + mouse).
+    // Left = next, right = previous. Use the dominant peak travel of the
+    // gesture (not the release point) with a moderate equal threshold so
+    // both directions actually commit.
+    // When the summary is long enough to scroll, touch-action:pan-y keeps
+    // vertical scrolling, and once the gesture locks to horizontal we freeze
+    // that scroll so the deck swipe can take over.
+    let drag = null;
+    const SWIPE_MIN = 48;
+    function summaryEl() {
+      return card.querySelector('.summary');
+    }
+    function freezeSummaryScroll(freeze) {
+      const sum = summaryEl();
+      if (!sum) return;
+      if (freeze) {
+        if (sum.dataset.scrollFrozen === '1') return;
+        sum.dataset.scrollFrozen = '1';
+        sum.dataset.prevOverflowY = sum.style.overflowY || '';
+        sum.dataset.prevTouchAction = sum.style.touchAction || '';
+        sum.style.overflowY = 'hidden';
+        sum.style.touchAction = 'none';
+      } else if (sum.dataset.scrollFrozen === '1') {
+        sum.style.overflowY = sum.dataset.prevOverflowY || '';
+        sum.style.touchAction = sum.dataset.prevTouchAction || '';
+        delete sum.dataset.scrollFrozen;
+        delete sum.dataset.prevOverflowY;
+        delete sum.dataset.prevTouchAction;
+      }
+    }
+    stage.addEventListener('pointerdown', (e) => {
+      if (e.target.closest('button, a, input, form')) return;
+      drag = {
+        id: e.pointerId, x: e.clientX, y: e.clientY,
+        moved: false, axis: null, maxRight: 0, maxLeft: 0
+      };
+      card.classList.add('dragging');
+      try { stage.setPointerCapture(e.pointerId); } catch (_) {}
+    }, true);
+    stage.addEventListener('pointermove', (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const dx = e.clientX - drag.x;
+      const dy = e.clientY - drag.y;
+      if (dx > drag.maxRight) drag.maxRight = dx;
+      if (-dx > drag.maxLeft) drag.maxLeft = -dx;
+      if (!drag.axis) {
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+        drag.axis = Math.abs(dx) >= Math.abs(dy) ? 'x' : 'y';
+        if (drag.axis === 'x') freezeSummaryScroll(true);
+      }
+      if (drag.axis !== 'x') return;
+      drag.moved = true;
+      e.preventDefault();
+      card.style.transform = `translateX(${dx}px)`;
+      card.style.opacity = String(Math.max(0.35, 1 - Math.abs(dx) / 280));
+    }, { passive: false, capture: true });
+    function endDrag(e) {
+      if (!drag || e.pointerId !== drag.id) return;
+      const maxR = drag.maxRight;
+      const maxL = drag.maxLeft;
+      const moved = drag.moved;
+      drag = null;
+      freezeSummaryScroll(false);
+      card.classList.remove('dragging');
+      if (!moved) {
+        card.style.transform = 'translateX(0)';
+        card.style.opacity = '1';
+        return;
+      }
+      // Dominant direction by peak distance; same threshold both ways.
+      if (maxR >= SWIPE_MIN && maxR >= maxL) {
+        go(-1); // right → previous
+        return;
+      }
+      if (maxL >= SWIPE_MIN && maxL > maxR) {
+        go(1); // left → next
+        return;
+      }
+      card.style.transform = 'translateX(0)';
+      card.style.opacity = '1';
+    }
+    stage.addEventListener('pointerup', endDrag, true);
+    stage.addEventListener('pointercancel', endDrag, true);
+    // iOS: native scroll on .summary can ignore pointer preventDefault unless
+    // touchmove is non-passive once the gesture is locked horizontal.
+    stage.addEventListener('touchmove', (e) => {
+      if (!drag || drag.axis !== 'x') return;
+      e.preventDefault();
+    }, { passive: false, capture: true });
+
+
+    function boot(data) {
+      if (!data || !data.stories || !data.stories.length) throw new Error('empty stories');
+      state.stories = data.stories;
+      state.i = 0;
+      if (data.date) $('brand').textContent = 'Headlines deck · ' + String(data.date).replace(/^\d{4}-(\d{2})-(\d{2})$/, (_,m,d) => {
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        return months[Number(m)-1] + ' ' + Number(d);
+      });
+      if (data.title) $('hint').textContent = data.title + ' · swipe or Go #';
+      if (data.note) $('selectedList').textContent = data.note;
+      const jumpTarget = parseJumpTarget();
+      if (jumpTarget) {
+        const idx = indexForNumber(jumpTarget);
+        if (idx >= 0) state.i = idx;
+      }
+      paintCard();
+    }
+
+
+    // --- Day switcher: base-relative (works at / on Netlify and /<repo>/ on GitHub Pages) ---
+    // siteBase(): site root path ending in '/', derived from location (strips /d/YYYY-MM-DD/...).
+    function siteBase() {
+      let p = location.pathname || '/';
+      const m = p.match(/^(.*\/)d\/\d{4}-\d{2}-\d{2}(\/.*)?$/);
+      if (m) return m[1];
+      return p.replace(/[^\/]*$/, '') || '/';
+    }
+    function siteUrl(rel) {
+      return siteBase() + String(rel || '').replace(/^\.?\//, '');
+    }
+
+    function formatDayLabel(iso, isLatest) {
+      const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (!m) return iso || '';
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const short = months[Number(m[2]) - 1] + ' ' + Number(m[3]);
+      return isLatest ? ('Today · ' + short) : short;
+    }
+
+    function detectCurrentDayDate() {
+      if (INLINE_DATA && INLINE_DATA.date) return String(INLINE_DATA.date);
+      const m = location.pathname.match(/\/d\/(\d{4}-\d{2}-\d{2})\//);
+      return m ? m[1] : '';
+    }
+
+    async function initDaySwitcher() {
+      const sel = document.getElementById('daySelect');
+      if (!sel) return;
+      let days = [];
+      try {
+        const res = await fetch(siteUrl('days.json'), { cache: 'no-store' });
+        if (res.ok) days = await res.json();
+      } catch (_) {}
+      if (!Array.isArray(days) || !days.length) {
+        const d = detectCurrentDayDate();
+        if (d) {
+          days = [{ date: d, label: formatDayLabel(d, true), path: './', latest: true }];
+        } else {
+          sel.closest('.day-row')?.setAttribute('hidden', '');
+          return;
+        }
+      }
+      const current = detectCurrentDayDate();
+      sel.innerHTML = '';
+      days.forEach((entry, i) => {
+        const opt = document.createElement('option');
+        const isLatest = !!(entry.latest || i === 0);
+        // days.json paths are relative to the site base ('./' or 'd/DATE/'); legacy '/'-rooted ones also OK.
+        opt.value = siteUrl(entry.path || (isLatest ? './' : ('d/' + entry.date + '/')));
+        opt.textContent = entry.label || formatDayLabel(entry.date, isLatest);
+        opt.dataset.date = entry.date || '';
+        if (entry.date && entry.date === current) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      if (![...sel.options].some(o => o.selected) && sel.options.length) {
+        sel.options[0].selected = true;
+      }
+      sel.addEventListener('change', () => {
+        const path = sel.value || siteBase();
+        // Navigate to day's index; drop hash so jump deep-links don't carry over.
+        location.href = path;
+      });
+    }
+    initDaySwitcher();
+
+    try { boot(INLINE_DATA); }
+    catch (err) {
+      $('hint').textContent = String(err.message || err);
+    }
+  </script>
+</body>
+</html>

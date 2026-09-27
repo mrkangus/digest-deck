@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Opening article…</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; padding: 2rem; color: #0f172a; }
+    a { color: #2563eb; }
+  </style>
+</head>
+<body>
+  <p id="msg">Opening article…</p>
+  <p id="fallback" hidden><a id="link" href="#">Tap here if it does not open</a></p>
+  <script>
+    (function () {
+      var raw = new URLSearchParams(location.search).get('u');
+      if (!raw) {
+        document.getElementById('msg').textContent = 'Missing article link.';
+        return;
+      }
+      var url;
+      try { url = new URL(raw).href; }
+      catch (err) {
+        document.getElementById('msg').textContent = 'Bad article link.';
+        return;
+      }
+      var a = document.getElementById('link');
+      a.href = url;
+      document.getElementById('fallback').hidden = false;
+      // Same-origin hop first so iOS Universal Links are less likely to steal the tap.
+      location.replace(url);
+    })();
+  </script>
+</body>
+</html>

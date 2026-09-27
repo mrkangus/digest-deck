@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f3f5f9" />
+  <title>Headlines deck</title>
+  <style>
+    :root {
+      --bg: #f3f5f9;
+      --bg-glow: #e8eef8;
+      --card: #ffffff;
+      --line: rgba(15, 23, 42, 0.10);
+      --text: #0f172a;
+      --soft: #334155;
+      --muted: #64748b;
+      --accent: #2563eb;
+      --accent-soft: #dbeafe;
+      --good: #dcfce7;
+      --good-text: #166534;
+      --shadow: 0 14px 40px rgba(15,23,42,0.12);
+      --radius: 26px;
+      --safe-b: env(safe-area-inset-bottom, 0px);
+      --safe-t: env(safe-area-inset-top, 0px);
+      --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow-x: hidden;
+      font-family: var(--font);
+      color: var(--text);
+      background:
+        radial-gradient(900px 480px at 50% -8%, var(--bg-glow) 0%, transparent 55%),
+        var(--bg);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .app {
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto;
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: calc(10px + var(--safe-t)) 12px calc(12px + var(--safe-b));
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 2px 4px;
+    }
+    .brand {
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 650;
+    }
+    .progress-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+    .progress-label { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .progress-bar {
+      width: 112px; height: 4px; border-radius: 999px;
+      background: rgba(15,23,42,0.08); overflow: hidden;
+    }
+    .progress-bar i {
+      display: block; height: 100%; width: 0%;
+      background: var(--accent);
+      border-radius: 999px; transition: width .2s ease;
+    }
+    .stage {
+      flex: 0 0 auto;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      /* none: claim horizontal swipes both ways; browser edge-back won't steal them */
+      touch-action: none;
+      user-select: none;
+      overscroll-behavior-x: none;
+    }
+    .card {
+      width: 100%;
+      max-width: 420px;
+      height: min(78vh, 680px);
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 22px 20px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 0;
+      transition: transform 0.18s ease, opacity 0.18s ease;
+      will-change: transform;
+    }
+    .card.dragging { transition: none; }
+    .card-top {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
+    }
+    .source-block { min-width: 0; flex: 1; }
+    .source {
+      margin: 0;
+      font-size: clamp(18px, 5vw, 22px);
+      line-height: 1.1;
+      font-weight: 750;
+      letter-spacing: -0.02em;
+    }
+    .section-row {
+      margin-top: 4px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--muted);
+      min-width: 0;
+    }
+    .section-line {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .author {
+      flex: 0 1 auto;
+      text-align: right;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 48%;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .digest {
+      flex: 0 0 auto;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 6px 10px;
+      white-space: nowrap;
+    }
+    .headline {
+      margin: 4px 0 0;
+      font-size: clamp(20px, 5.4vw, 26px);
+      line-height: 1.18;
+      letter-spacing: -0.025em;
+      font-weight: 750;
+    }
+    .summary {
+      margin: 0;
+      font-size: clamp(15px, 3.8vw, 17px);
+      line-height: 1.5;
+      color: var(--soft);
+      /* vertical scroll only; horizontal stays free for deck swipe */
+      overflow-x: hidden;
+      overflow-y: auto;
+      touch-action: pan-y;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+      flex: 1;
+      min-height: 0;
+      padding-right: 2px;
+    }
+    .meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .pill {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 5px 9px; border-radius: 8px;
+      background: rgba(15,23,42,0.05); color: var(--muted);
+    }
+    .pill.opinion { background: #fff7ed; color: #c2410c; }
+    .pill.featured { background: var(--accent-soft); color: #1d4ed8; }
+    .pill.selected { background: var(--good); color: var(--good-text); }
+    .open {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 14px; font-weight: 650; padding: 2px 0;
+      color: var(--accent); text-decoration: none;
+    }
+    .actions {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 2px;
+    }
+    .actions button {
+      appearance: none; border: 0; cursor: pointer;
+      border-radius: 16px; padding: 14px 12px;
+      font-size: 15px; font-weight: 650; color: var(--text);
+      background: rgba(15,23,42,0.05);
+    }
+    .actions button.good { background: var(--good); color: var(--good-text); }
+    .actions button.good.on { outline: 2px solid #86efac; }
+    .actions button:active { transform: scale(0.98); }
+    .hint {
+      text-align: center; color: var(--muted); font-size: 12px; min-height: 16px;
+      padding: 0 8px;
+    }
+    .dock {
+      display: grid; gap: 8px;
+      padding: 10px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 8px 24px rgba(15,23,42,0.08);
+    }
+    .dock-row { display: flex; gap: 10px; align-items: stretch; }
+    .dock button { flex: 1; padding: 12px 10px; border-radius: 14px; font-size: 14px; font-weight: 650; border: 0; cursor: pointer; }
+    .dock .primary { background: var(--accent); color: #fff; }
+    .dock .ghost {
+      background: rgba(15,23,42,0.06); border: 1px solid var(--line);
+      color: var(--text); flex: 0 0 auto;
+      min-width: 72px; min-height: 56px;
+      padding: 14px 18px;
+      font-size: 28px; line-height: 1;
+      font-weight: 700;
+    }
+    .selected-list { max-height: 64px; overflow: auto; font-size: 12px; color: var(--muted); line-height: 1.35; }
+    .toast {
+      position: fixed; left: 50%; bottom: calc(28px + var(--safe-b));
+      transform: translateX(-50%) translateY(16px);
+      background: #0f172a; color: #fff; border: 1px solid rgba(15,23,42,0.2);
+      padding: 10px 14px; border-radius: 12px; font-size: 13px;
+      max-width: min(90vw, 420px); text-align: center;
+      opacity: 0; pointer-events: none; transition: opacity .2s ease, transform .2s ease;
+      z-index: 20;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    .jump {
+      display: flex; align-items: center; gap: 6px;
+      margin-top: 2px;
+    }
+    .jump label {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+      text-transform: uppercase; color: var(--muted);
+    }
+    .jump input {
+      width: 52px; appearance: textfield;
+      border: 1px solid var(--line); border-radius: 10px;
+      padding: 5px 8px; font-size: 13px; font-weight: 650;
+      font-variant-numeric: tabular-nums; text-align: center;
+      background: #fff; color: var(--text);
+    }
+    .jump input::-webkit-outer-spin-button,
+    .jump input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .jump button {
+      appearance: none; border: 0; cursor: pointer;
+      border-radius: 10px; padding: 5px 10px;
+      font-size: 12px; font-weight: 700;
+      background: var(--accent-soft); color: #1d4ed8;
+    }
+    .jump button:active { transform: scale(0.97); }
+
+    /* Day switcher — compact, mobile-tappable, no swipe steal */
+    .header-left { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 4px; }
+    .day-row {
+      display: flex; align-items: center; gap: 6px;
+      touch-action: manipulation;
+    }
+    .day-row label {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+      text-transform: uppercase; color: var(--muted);
+      flex: 0 0 auto;
+    }
+    #daySelect {
+      appearance: none; -webkit-appearance: none;
+      border: 1px solid var(--line); border-radius: 10px;
+      padding: 8px 30px 8px 10px;
+      min-height: 40px; max-width: min(180px, 48vw);
+      font-size: 13px; font-weight: 650;
+      font-variant-numeric: tabular-nums;
+      background-color: #fff;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%2364748b' d='M1.4 1.2L6 5.6l4.6-4.4 1.2 1.3L6 8 0.2 2.5z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      background-size: 12px 8px;
+      color: var(--text);
+      touch-action: manipulation;
+      cursor: pointer;
+    }
+    #daySelect:focus { outline: 2px solid var(--accent-soft); outline-offset: 1px; }
+
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="header-left">
+        <div class="brand" id="brand">Headlines deck</div>
+        <div class="day-row">
+          <label for="daySelect">Days</label>
+          <select id="daySelect" aria-label="Choose day archive"></select>
+        </div>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-label" id="progressLabel">—</div>
+        <div class="progress-bar"><i id="progressFill"></i></div>
+        <form class="jump" id="jumpForm" autocomplete="off">
+          <label for="jumpN">Go</label>
+          <input id="jumpN" type="number" inputmode="numeric" min="1" step="1" placeholder="#" aria-label="Jump to story number" />
+          <button type="submit">Go</button>
+        </form>
+      </div>
+    </header>
+
+    <div class="stage" id="stage" aria-label="Headline card">
+      <article class="card" id="card"></article>
+    </div>
+
+    <div class="hint" id="hint">Swipe ← / → · Go # · Brief me · Copy list</div>
+
+    <footer class="dock">
+      <div class="dock-row">
+        <button type="button" class="ghost" id="btnPrev" aria-label="Previous">←</button>
+        <button type="button" class="primary" id="btnCopy">Copy brief list</button>
+        <button type="button" class="ghost" id="btnNext" aria-label="Next">→</button>
+      </div>
+      <div class="selected-list" id="selectedList">No stories selected for briefing yet.</div>
+    </footer>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const INLINE_DATA = {"date":"2026-09-27","title":"Morning headlines — Sunday, Sep 27, 2026","note":"303 stories. Swipe · Brief me · Copy list · paste numbers into News Headlines chat.","stories":[{"n":1,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Canada’s tax system needs an overhaul. Here are 11 big ideas to make it happen","url":"https://www.theglobeandmail.com/business/article-canada-tax-system-expert-ideas/","summary":"","digestN":1,"opinion":false},{"n":2,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"How Ottawa could cut personal income taxes – without creating a fiscal mess","url":"https://www.theglobeandmail.com/investing/article-gst-tax-reform-personal-income/","summary":"","digestN":2,"opinion":false},{"n":3,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"U.S. not rushing to strike deal with Canada, Washington’s trade envoy says","url":"https://www.theglobeandmail.com/politics/article-us-not-rushing-to-strike-deal-with-canada-washingtons-trade-envoy-says/","summary":"","digestN":3,"opinion":false,"featured":"Globe"},{"n":4,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Alberta executives urge business community to raise alarm over economic risks of separation","url":"https://www.theglobeandmail.com/business/article-alberta-separation-business-leaders-hesitant-to-step-into-debate/","summary":"","digestN":4,"opinion":false},{"n":5,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Bombardier in advanced talks to build Saab surveillance aircraft in Canada, CEO says","url":"https://www.theglobeandmail.com/business/article-bombardier-in-advanced-talks-to-build-saab-surveillance-aircraft-in/","summary":"","digestN":5,"opinion":false},{"n":6,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Eby proposes 2-per-cent tax on unsold condos to encourage developers to sell","url":"https://www.theglobeandmail.com/canada/british-columbia/article-eby-proposes-tax-on-unsold-condos-to-encourage-developers-to-sell/","summary":"","digestN":6,"opinion":false},{"n":7,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Trump’s attacks on Canada keep colliding with U.S. interests","url":"https://www.theglobeandmail.com/investing/markets/inside-the-market/article-trumps-attacks-on-canada-keep-colliding-with-us-interests/","summary":"","digestN":7,"opinion":false},{"n":8,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Potash giant Canpotex investing $500-million in Vancouver port terminal to increase exports","url":"https://www.theglobeandmail.com/business/article-canpotex-investing-500-million-vancouver-port-terminal-potash-exports/","summary":"","digestN":8,"opinion":false},{"n":9,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Ontario Shipyards wants to build the next generation of military corvettes, but it faces rough seas ahead","url":"https://www.theglobeandmail.com/business/rob-magazine/article-ontario-shipyards-wants-to-build-the-next-generation-of-military/","summary":"","digestN":9,"opinion":false},{"n":10,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Spend to defend: Decoding Canada’s military spending","url":"https://www.theglobeandmail.com/business/rob-magazine/article-spend-to-defend-decoding-canadas-military-spending/","summary":"","digestN":10,"opinion":false},{"n":11,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"The Nettwerk Effect: How Terry McBride rebuilt his indie label by gaming the algorithm","url":"https://www.theglobeandmail.com/business/rob-magazine/article-the-nettwerk-effect-how-terry-mcbride-rebuilt-his-indie-label-by/","summary":"","digestN":11,"opinion":false},{"n":12,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Made in Canada: Meet the company Rush drummer Neil Peart trusted to make his cymbals","url":"https://www.theglobeandmail.com/business/rob-magazine/article-made-in-canada-meet-the-canadian-company-rush-drummer-neil-peart/","summary":"","digestN":12,"opinion":false},{"n":13,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"How to grow a great idea","url":"https://www.theglobeandmail.com/business/rob-magazine/article-how-to-grow-a-great-idea-23-of-canadas-top-growing-companies-on/","summary":"","digestN":13,"opinion":false},{"n":14,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Rise of the robots: How Aces Robotics sells gently used machines","url":"https://www.theglobeandmail.com/business/rob-magazine/article-how-aces-robotics-sells-gently-used-machines-rob-mag-2026/","summary":"","digestN":14,"opinion":false},{"n":15,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"How Canada can play to win when U.S. trade strategy goes rogue","url":"https://www.theglobeandmail.com/business/rob-magazine/article-how-canada-can-play-to-win-when-us-trade-strategy-goes-rogue/","summary":"","digestN":15,"opinion":false},{"n":16,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Full of energy: Capital Power’s Avik Dey is at the centre of an electrical storm in Alberta","url":"https://www.theglobeandmail.com/business/rob-magazine/article-full-of-energy-capital-powers-avik-dey-is-at-the-centre-of-an/","summary":"","digestN":16,"opinion":false},{"n":17,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"China, U.S. agree to establish AI safety channel after summit","url":"https://www.theglobeandmail.com/world/article-china-us-agree-to-establish-ai-safety-channel-after-summit/","summary":"","digestN":17,"opinion":false},{"n":18,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Bonds may beckon with higher yields. Be careful","url":"https://www.theglobeandmail.com/investing/markets/inside-the-market/article-bonds-may-beckon-with-higher-yields-be-careful/","summary":"","digestN":18,"opinion":false},{"n":19,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Fixed income doesn’t need to be all about interest rate risk","url":"https://www.theglobeandmail.com/investing/investment-ideas/article-fixed-income-doesnt-need-to-be-all-about-interest-rate-risk/","summary":"","digestN":19,"opinion":false},{"n":20,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Has the arithmetic on variable vs. fixed mortgages changed? These brokers think so","url":"https://www.theglobeandmail.com/investing/personal-finance/article-best-mortgage-rates-today-fixed-variable-sept-24/","summary":"","digestN":20,"opinion":false},{"n":21,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Why this $1-billion money manager bought Pembina, PrairieSky and sold Netflix","url":"https://www.theglobeandmail.com/investing/globe-advisor/alternative-investments/article-why-this-1-billion-money-manager-bought-pembina-prairiesky-and-sold/","summary":"","digestN":21,"opinion":false},{"n":22,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Calendar: What investors need to know for the week ahead","url":"https://www.theglobeandmail.com/investing/markets/inside-the-market/article-calendar-what-investors-need-to-know-for-the-week-ahead-159/","summary":"","digestN":22,"opinion":false},{"n":23,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Investors can’t control the markets. Here are six things they can","url":"https://www.theglobeandmail.com/investing/investment-ideas/article-investors-cant-control-the-markets-here-are-six-things-they-can/","summary":"","digestN":23,"opinion":false},{"n":24,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"OSC damaged its credibility with case against Purpose founder Som Seif, lawyer argues","url":"https://www.theglobeandmail.com/business/article-osc-purpose-hearing-september-25/","summary":"","digestN":24,"opinion":false},{"n":25,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Volkswagen subsidiary delays opening of EV battery plant","url":"https://www.theglobeandmail.com/business/article-powerco-volkswagen-delays-opening-ev-battery-plant-st-thomas-ontario/","summary":"","digestN":25,"opinion":false},{"n":26,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Federal panel urges Atlantic provinces to create single electricity market","url":"https://www.theglobeandmail.com/business/article-federal-panel-urges-atlantic-provinces-to-create-single-electricity/","summary":"","digestN":26,"opinion":false},{"n":27,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"U.S. longer-dated yields extend recent run-up after upbeat economic data","url":"https://www.theglobeandmail.com/investing/article-us-yields-extend-recent-run-higher-after-more-upbeat-economic-data/","summary":"","digestN":27,"opinion":false},{"n":28,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Pentagon can label Anthropic a supply-chain risk, U.S. court rules","url":"https://www.theglobeandmail.com/business/article-us-federal-court-pentagon-anthropic-supply-chain-risk/","summary":"","digestN":28,"opinion":false},{"n":29,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Trump’s heavy-handed approach to China leaves trade partners with stark choice","url":"https://www.theglobeandmail.com/business/article-trumps-bid-to-isolate-china-leaves-trade-partners-with-stark-choice/","summary":"","digestN":29,"opinion":false},{"n":30,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"‘Zero chance’ of U.S. invading Canada, Alaskan Governor says","url":"https://www.theglobeandmail.com/politics/article-alaskan-governor-says-zero-chance-of-united-states-invading-canada/","summary":"","digestN":30,"opinion":false},{"n":31,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Ontario’s spending to lower electricity bills hit record high last year","url":"https://www.theglobeandmail.com/business/article-ontario-spending-lower-electricity-bills/","summary":"","digestN":31,"opinion":false},{"n":32,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Economics of West Coast pipeline in focus ahead of Ottawa major project decision","url":"https://www.theglobeandmail.com/business/article-oil-sector-questions-economics-of-albertas-west-coast-pipeline/","summary":"","digestN":32,"opinion":false},{"n":33,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Maple Leaf’s sober second run at meatless meat","url":"https://www.theglobeandmail.com/business/economy/article-maple-leaf-foods-second-run-meatless-meat-yves-veggie-cuisine/","summary":"","digestN":33,"opinion":false},{"n":34,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"OSC presses greenwashing allegations in closing arguments against Purpose Investments","url":"https://www.theglobeandmail.com/business/article-osc-purpose-investments-som-seif-greenwashing-case/","summary":"","digestN":34,"opinion":false},{"n":35,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Blackstone’s new private wealth offering for retail investors launching first in Canada and Japan","url":"https://www.theglobeandmail.com/business/article-blackstone-private-markets-fund-retail-investors-canada-launch/","summary":"","digestN":35,"opinion":false},{"n":36,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Carney’s mega deduction tax break is a boost to pipeline, South Bow executives say","url":"https://www.theglobeandmail.com/business/article-mega-deduction-tax-break-prairie-connector-oil-pipeline-south-bow/","summary":"","digestN":36,"opinion":false},{"n":37,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Ontario-backed High Art Capital pays $22.3-million for 43 unsold Toronto condo units","url":"https://www.theglobeandmail.com/business/article-high-art-capital-unsold-toronto-condo-units/","summary":"","digestN":37,"opinion":false},{"n":38,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"B.C. Attorney-General, federal AI Minister alarmed by report ChatGPT coached Tumbler Ridge shooter","url":"https://www.theglobeandmail.com/canada/article-tumbler-ridge-bc-shooter-coached-by-chatgpt/","summary":"","digestN":38,"opinion":false},{"n":39,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Matthew Proud-led SPAC threatens to pull out of merger with delivery company UniUni","url":"https://www.theglobeandmail.com/business/article-matthew-proud-led-spac-threatens-to-pull-out-of-merger-with-delivery/","summary":"","digestN":39,"opinion":false},{"n":40,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"OMERS promotes Laura Lenz to lead venture capital unit","url":"https://www.theglobeandmail.com/business/article-omers-promotes-laura-lenz-to-lead-venture-capital-unit/","summary":"","digestN":40,"opinion":false},{"n":41,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Google plans first test of AI chips in space under Project Suncatcher","url":"https://www.theglobeandmail.com/business/article-google-plans-first-test-of-ai-chips-in-space-under-project-suncatcher/","summary":"","digestN":41,"opinion":false},{"n":42,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Exco Technologies has 21 facilities in nine countries – and the smarts to diversify away from autos","url":"https://www.theglobeandmail.com/business/rob-magazine/article-exco-technologies-has-21-facilities-in-nine-countries-and-the-smarts/","summary":"","digestN":42,"opinion":false},{"n":43,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Ramona Persaud strives for the trifecta of excess returns, downside protection and a shield from volatility","url":"https://www.theglobeandmail.com/business/rob-magazine/article-ramona-persaud-strives-for-the-trifecta-of-excess-returns-downside/","summary":"","digestN":43,"opinion":false},{"n":44,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Canada’s 100 best cities for renters in 2026","url":"https://www.theglobeandmail.com/investing/personal-finance/article-canada-best-cities-for-renters-2026/","summary":"","digestN":44,"opinion":false},{"n":45,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Trump’s position on Chinese autos is as clear as mud. That’s a problem, including for Canada","url":"https://www.theglobeandmail.com/business/commentary/article-trumps-position-on-chinese-autos-is-as-clear-as-mud-thats-a-problem/","summary":"","digestN":45,"opinion":true},{"n":46,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Donald Trump and the closing of the American mind","url":"https://www.theglobeandmail.com/business/commentary/article-donald-trump-orwell-greer-totalitarianism/","summary":"","digestN":46,"opinion":true},{"n":47,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Put plainly, prediction markets are not for you","url":"https://www.theglobeandmail.com/business/commentary/article-put-plainly-prediction-markets-are-not-for-you/","summary":"","digestN":47,"opinion":true},{"n":48,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"China and the U.S., the worst frenemies of the world economy","url":"https://www.theglobeandmail.com/business/commentary/article-trump-xi-china-us-worst-frenemies-of-the-world-economy/","summary":"","digestN":48,"opinion":true},{"n":49,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Canadian airports can anchor a global infrastructure champion","url":"https://www.theglobeandmail.com/business/commentary/article-canadian-airports-can-anchor-a-global-infrastructure-champion/","summary":"","digestN":49,"opinion":true},{"n":50,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"The dangers of letting AI agents do your shopping","url":"https://www.theglobeandmail.com/business/commentary/article-the-dangers-of-letting-ai-agents-do-your-shopping/","summary":"","digestN":50,"opinion":true},{"n":51,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"SEC wants to get rid of shareholder proposals, setting another dangerous precedent for Canada","url":"https://www.theglobeandmail.com/business/commentary/article-us-sec-shareholder-proposals-investors/","summary":"","digestN":51,"opinion":true},{"n":52,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Carney’s airport investment plan doesn’t go far enough in privatization","url":"https://www.theglobeandmail.com/business/commentary/article-carneys-airport-investment-plan-doesnt-go-far-enough-in-privatization/","summary":"","digestN":52,"opinion":true},{"n":53,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Carney can change Canada’s policies, but who will change Canadians?","url":"https://www.theglobeandmail.com/business/commentary/article-carney-can-change-canadas-policies-but-who-will-change-canadians/","summary":"","digestN":53,"opinion":true},{"n":54,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"The upside of a European alternative to Trumpmerica, and the limits","url":"https://www.theglobeandmail.com/business/commentary/article-the-upside-of-a-european-alternative-to-trumpmerica-and-the-limits/","summary":"","digestN":54,"opinion":true},{"n":55,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"Ford’s Latest Employee of the Month is a Hawk Named ‘El Charro’","url":"https://www.wsj.com/business/autos/fords-factory-hermosillo-mexico-pigeons-hawk-el-charro-b78d90ae","summary":"","digestN":55,"opinion":false},{"n":56,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"These $10,000 Cameras Are a Rare European Manufacturing Success","url":"https://www.wsj.com/business/retail/these-10-000-cameras-are-a-rare-european-manufacturing-success-d91cf324","summary":"","digestN":56,"opinion":false},{"n":57,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"A Storied Indian Business Empire Is Being Torn Apart by Infighting","url":"https://www.wsj.com/world/a-storied-indian-business-empire-is-being-torn-apart-by-infighting-2c5c843c","summary":"","digestN":57,"opinion":false},{"n":58,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"Nevada Is Making Surprising Gains on Solar Energy","url":"https://www.wsj.com/business/energy-oil/nevada-solar-industry-trump-states-b838c7e4","summary":"","digestN":58,"opinion":false},{"n":59,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"New Boeing 737 MAX Software Glitch Could Disrupt Navigation Feature","url":"https://www.wsj.com/business/airlines/new-boeing-737-max-software-glitch-could-disrupt-navigation-feature-d537b8d8","summary":"","digestN":59,"opinion":false},{"n":60,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"What Is the White House Press Pool?","url":"https://www.wsj.com/business/media/what-is-the-white-house-press-pool-f831c619","summary":"","digestN":60,"opinion":false},{"n":61,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"We All Hated Busy Work. Now That It’s Disappearing, It Turns Out We Miss It.","url":"https://www.wsj.com/lifestyle/careers/we-all-hated-busy-work-now-that-its-disappearing-it-turns-out-we-miss-it-d56bb48b","summary":"","digestN":61,"opinion":false},{"n":62,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"‘What Could Possibly Go Right?’: The Rise of a Restaurant Empire","url":"https://www.wsj.com/arts-culture/books/what-could-possibly-go-right-review-the-rise-of-a-restaurant-empire-b12feb60","summary":"","digestN":62,"opinion":false},{"n":63,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"The Rise of the Almost-Premium Credit Card","url":"https://www.wsj.com/personal-finance/credit/the-rise-of-the-almost-premium-credit-card-f6d22ebd","summary":"","digestN":63,"opinion":false},{"n":64,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"Jeff Bezos’ Blue Origin Is Fueled With $30 Billion of His Fortune","url":"https://www.wsj.com/business/jeff-bezos-blue-origin-is-fueled-with-30-billion-of-his-fortune-b7407e6e","summary":"","digestN":64,"opinion":false},{"n":65,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"How America’s Biggest Buffet Chain Cracked the Math of All You Can Eat","url":"https://www.wsj.com/business/hospitality/how-americas-biggest-buffet-chain-cracked-the-math-of-all-you-can-eat-0c834503","summary":"","digestN":65,"opinion":false},{"n":66,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"How Asheville’s Artists and Shopkeepers Rebuilt Their City","url":"https://www.wsj.com/business/how-ashevilles-artists-and-shopkeepers-rebuilt-their-city-80762f93","summary":"","digestN":66,"opinion":false},{"n":67,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"The Cost of Transporting Pretty Much Everything Just Won’t Stop Going Up","url":"https://www.wsj.com/business/inflation-costs-diesel-port-trucks-1062d089","summary":"","digestN":67,"opinion":false},{"n":68,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"Pentagon-Backed Oil Company Is Set to Vie for Chevron’s Crown in Venezuela","url":"https://www.wsj.com/business/energy-oil/pentagon-backed-oil-company-is-set-to-vie-for-chevrons-crown-in-venezuela-f8e4300a","summary":"","digestN":68,"opinion":false},{"n":69,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"Iran War Is Driving Up the Cost of Your Next Oil Change","url":"https://www.wsj.com/business/retail/iran-war-is-driving-up-the-cost-of-your-next-oil-change-b254bfb1","summary":"","digestN":69,"opinion":false},{"n":70,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"Chemicals Giant BASF Moves for Rival Evonik","url":"https://www.wsj.com/business/chemicals-giant-basf-moves-for-rival-evonik-6bdff9f5","summary":"","digestN":70,"opinion":false},{"n":71,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"Moderna CEO’s Realistic Approach to Innovation","url":"https://www.wsj.com/business/moderna-ceos-realistic-approach-to-innovation-cc84144e","summary":"","digestN":71,"opinion":false},{"n":72,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"Costco Reports Higher Fourth-Quarter Profit, Revenue on Resilient Consumer Spending","url":"https://www.wsj.com/business/earnings/costco-reports-higher-fourth-quarter-profit-as-sales-membership-fees-rise-4156cc4a","summary":"","digestN":72,"opinion":false},{"n":73,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"MGM Resorts Eyeing Bid for Barry Diller’s People Incorporated","url":"https://www.wsj.com/business/hospitality/mgm-resorts-eyeing-bid-for-barry-dillers-people-incorporated-b506c037","summary":"","digestN":73,"opinion":false},{"n":74,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"Trump Administration Seeks to Stabilize Ties During Summit With Xi","url":"https://www.wsj.com/politics/elections/trump-administration-seeks-to-stabilize-ties-during-summit-with-xi-e35a2fa7","summary":"","digestN":74,"opinion":false},{"n":75,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"Oil Prices Jump on Houthi Attacks, U.S.-Iran Escalation Fears","url":"https://www.wsj.com/business/energy-oil/oil-prices-fall-on-optimism-around-u-s-iran-diplomacy-saudi-pipeline-restart-523fe9d3","summary":"","digestN":75,"opinion":false},{"n":76,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"New York State Sues Polymarket in Escalating Crackdown on Prediction Markets","url":"https://www.wsj.com/us-news/law/ny-sues-polymarket-in-escalating-crackdown-on-prediction-markets-80d1aba6","summary":"","digestN":76,"opinion":false},{"n":77,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"Darden Restaurants’ Earnings Hit by Higher Food and Labor Costs","url":"https://www.wsj.com/business/earnings/darden-restaurants-posts-sales-gains-but-profit-slips-on-higher-expenses-3d85eef6","summary":"","digestN":77,"opinion":false},{"n":78,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"Quenching the World’s Biofuels Thirst Could Require a Montana-Size Chunk of Land","url":"https://www.wsj.com/business/energy-oil/quenching-the-worlds-biofuels-thirst-could-require-a-montana-size-chunk-of-land-cd366cd1","summary":"","digestN":78,"opinion":false},{"n":79,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"Amazon to Expand Robot-Making Capacity With New, $100-Million Indiana Hub","url":"https://www.wsj.com/tech/amazon-to-expand-robot-making-capacity-with-new-100-million-indiana-hub-87fce322","summary":"","digestN":79,"opinion":false},{"n":80,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"Bob Chapek Is So Not Over Getting Fired From Disney","url":"https://www.wsj.com/business/media/bob-chapek-is-so-not-over-getting-fired-from-disney-f96bafcc","summary":"","digestN":80,"opinion":false},{"n":81,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"Starbucks to Close 250 Underperforming Stores","url":"https://www.wsj.com/business/hospitality/starbucks-targets-hundreds-of-cafes-in-new-round-of-closures-9c2da130","summary":"","digestN":81,"opinion":false},{"n":82,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"Is 3-D Printing the Answer to AI’s Gas Turbine Crunch?","url":"https://www.wsj.com/business/energy-oil/is-3-d-printing-the-answer-to-ais-gas-turbine-crunch-865ae5d0","summary":"","digestN":82,"opinion":false},{"n":83,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"LVMH’s Arnault Family Moves to Cement Control With Ownership Overhaul","url":"https://www.wsj.com/business/deals/arnault-family-moves-to-cement-control-of-lvmh-in-ownership-overhaul-898d9649","summary":"","digestN":83,"opinion":false},{"n":84,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"Flow of Chinese Components to Iran Shadows Trump’s Summit With Xi","url":"https://www.wsj.com/articles/flow-of-chinese-components-to-iran-shadows-trumps-summit-with-xi-176c9f14","summary":"","digestN":84,"opinion":false},{"n":85,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"A Kill Switch for AI? Microsoft’s Brad Smith Says Yes","url":"https://www.wsj.com/business/a-kill-switch-for-ai-microsofts-brad-smith-says-yes-8be7866e","summary":"","digestN":85,"opinion":false},{"n":86,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"See How Elon Musk’s Sunbelt Investments Are Reshaping His Business Empire","url":"https://www.wsj.com/business/see-how-elon-musks-sunbelt-investments-are-reshaping-his-business-empire-bf316f38","summary":"","digestN":86,"opinion":false},{"n":87,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"Delivery Hero Cancels CEO Exit Plans Due to Uber’s $14.8 Billion Takeover Bid","url":"https://www.wsj.com/business/delivery-hero-cancels-ceo-exit-plans-due-to-ubers-14-8-billion-takeover-bid-de155bf8","summary":"","digestN":87,"opinion":false},{"n":88,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"H&M Earnings Rise as Cost-Saving Push Pays Off","url":"https://www.wsj.com/business/earnings/h-m-earnings-rise-as-cost-saving-push-pays-off-17e903ea","summary":"","digestN":88,"opinion":false},{"n":89,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"Schneider Electric to Launch Bid for Shelly Group in $1.4 Billion Deal","url":"https://www.wsj.com/business/deals/schneider-electric-to-launch-bid-for-shelly-group-in-1-4-billion-deal-c6cc008e","summary":"","digestN":89,"opinion":false},{"n":90,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"Chinese Carmakers Keep Gaining Ground in Europe as Monthly Sales Surge","url":"https://www.wsj.com/business/autos/chinese-carmakers-keep-gaining-ground-in-europe-as-monthly-sales-surge-496266cb","summary":"","digestN":90,"opinion":false},{"n":91,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"L.A. Comes to Grips With a Studio Merger Many Didn’t Want","url":"https://www.wsj.com/business/media/l-a-comes-to-grips-with-a-studio-merger-many-didnt-want-98afc460","summary":"","digestN":91,"opinion":false},{"n":92,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"Some Ships Are Paying $5 Million to Transit the 50-Mile Panama Canal","url":"https://www.wsj.com/business/logistics/how-the-panama-canal-became-a-50-mile-waterway-with-a-5-million-ticket-price-271095f4","summary":"","digestN":92,"opinion":false},{"n":93,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"Portland Real Estate Is Such a Mess That All Housing Is Affordable Housing","url":"https://www.wsj.com/real-estate/portland-real-estate-is-such-a-mess-that-all-housing-is-affordable-housing-26bbea6a","summary":"","digestN":93,"opinion":false},{"n":94,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"Mortgage Rates Just Hit 7%. Here’s How the Housing Market Is About to Change.","url":"https://www.wsj.com/economy/housing/mortgage-rates-just-hit-7-heres-how-the-housing-market-is-about-to-change-35986dc6","summary":"","digestN":94,"opinion":false,"featured":"WSJ"},{"n":95,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"Xi’s Economy Is Failing China’s People","url":"https://www.wsj.com/economy/xis-economy-is-failing-chinas-people-df3f9000","summary":"","digestN":95,"opinion":true},{"n":96,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"The AI Build-Out Is Becoming the Biggest Economic Bet in U.S. History","url":"https://www.wsj.com/economy/the-ai-build-out-is-becoming-the-biggest-economic-bet-in-u-s-history-c60716dd","summary":"","digestN":96,"opinion":false},{"n":97,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"Beware Oil’s Second Strike on Inflation","url":"https://www.wsj.com/economy/central-banking/beware-oils-second-strike-on-inflation-a07161d3","summary":"","digestN":97,"opinion":true},{"n":98,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"I Went Home to Detroit to See What Voters Want From the Midterms","url":"https://www.wsj.com/politics/policy/i-went-home-to-detroit-to-see-what-voters-want-from-the-midterms-5e3c1881","summary":"","digestN":98,"opinion":false},{"n":99,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"The Silver Lining in Soaring Interest Rates: The Economy Can Handle Them","url":"https://www.wsj.com/economy/central-banking/the-silver-lining-in-soaring-interest-rates-the-economy-can-handle-them-842e29ff","summary":"","digestN":99,"opinion":false},{"n":100,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"Anthropic’s IPO Will Happen a Month Later Than Expected","url":"https://www.wsj.com/tech/ai/anthropics-ipo-will-happen-a-month-later-than-expected-a334b10e","summary":"","digestN":100,"opinion":false},{"n":101,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"New Report on SVB Collapse Pins Blame on Fed’s Own Regulators, Fed Official Says","url":"https://www.wsj.com/economy/central-banking/new-fed-report-on-svb-collapse-pins-blame-on-feds-own-regulators-9a3cb062","summary":"","digestN":101,"opinion":false},{"n":102,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"Week Ahead for FX, Bonds: U.S. Jobs Data in Focus as Another Fed Rate Hike Looks Possible","url":"https://www.wsj.com/economy/week-ahead-for-fx-bonds-u-s-jobs-data-in-focus-as-another-fed-rate-hike-looks-possible-8593c44f","summary":"","digestN":102,"opinion":false},{"n":103,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"Consumer Sentiment Ticked Lower in September","url":"https://www.wsj.com/economy/consumers/consumer-sentiment-ticked-lower-in-september-5ad0b371","summary":"","digestN":103,"opinion":false},{"n":104,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"Durable Goods Orders Were Unchanged in August","url":"https://www.wsj.com/economy/durable-goods-orders-were-unchanged-in-august-a75bce16","summary":"","digestN":104,"opinion":false},{"n":105,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"German Consumer Confidence Falls to Lowest Since May on Energy Costs","url":"https://www.wsj.com/economy/consumers/german-consumer-confidence-falls-to-lowest-since-may-on-energy-costs-32e99994","summary":"","digestN":105,"opinion":false},{"n":106,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"Canada Retail Sales Recover Following First Fall of Year in July","url":"https://www.wsj.com/economy/consumers/canada-retail-sales-recover-following-first-fall-of-year-in-july-11ee8096","summary":"","digestN":106,"opinion":false},{"n":107,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"U.S. Jobless Claims Slid Further Last Week","url":"https://www.wsj.com/economy/jobs/u-s-jobless-claims-slid-further-last-week-b7ee1b2a","summary":"","digestN":107,"opinion":false},{"n":108,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"German Business Sentiment Climbs to Highest Level in Three Years","url":"https://www.wsj.com/economy/central-banking/german-business-sentiment-climbs-to-highest-level-in-three-years-ba9e26d1","summary":"","digestN":108,"opinion":false},{"n":109,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"Dollar Jumps to 8-Week High on Fed Rate-Hike Bets","url":"https://www.wsj.com/economy/central-banking/dollar-jumps-to-8-week-high-as-fed-rate-hike-bets-outweigh-lower-oil-prices-92e6cf72","summary":"","digestN":109,"opinion":false},{"n":110,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"Business Surveys Point to Surprise Pickup for Eurozone","url":"https://www.wsj.com/economy/business-surveys-point-to-surprise-pickup-for-eurozone-5bf47eb9","summary":"","digestN":110,"opinion":false},{"n":111,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"Bank Indonesia Holds Steady as It Keeps Watchful Eye on Rupiah","url":"https://www.wsj.com/economy/central-banking/bank-indonesia-holds-steady-as-it-keeps-watchful-eye-on-rupiah-cfe02fc9","summary":"","digestN":111,"opinion":false},{"n":112,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"Global Economy Stronger Than Expected, But Threats Mount, OECD Says","url":"https://www.wsj.com/economy/global/global-economy-stronger-than-expected-but-threats-mount-oecd-says-7472619b","summary":"","digestN":112,"opinion":false},{"n":113,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"AI Cycle Set to Offset Energy Hit for Asia Economies","url":"https://www.wsj.com/economy/ai-cycle-set-to-offset-energy-hit-for-asia-economies-b9257568","summary":"","digestN":113,"opinion":false},{"n":114,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"KB Home Cuts Margin Outlook as Housing Conditions Worsen","url":"https://www.wsj.com/economy/housing/kb-home-cuts-margin-outlook-as-housing-conditions-worsen-caa020ae","summary":"","digestN":114,"opinion":false},{"n":115,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"Fed’s Barkin Says One Rate Hike May Not Be Enough to Tame Inflation","url":"https://www.wsj.com/economy/central-banking/feds-barkin-says-one-rate-hike-may-not-be-enough-to-tame-inflation-dd338c6c","summary":"","digestN":115,"opinion":false},{"n":116,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"Eurozone Consumer Sentiment Knocked by Surging Energy Prices","url":"https://www.wsj.com/economy/central-banking/eurozone-consumer-sentiment-knocked-by-surging-energy-prices-dd9668d7","summary":"","digestN":116,"opinion":false},{"n":117,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"EU, Philippines Reach Breakthrough in Free-Trade Talks","url":"https://www.wsj.com/economy/trade/eu-philippines-reach-breakthrough-in-free-trade-talks-0fdf1e12","summary":"","digestN":117,"opinion":false},{"n":118,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"U.K. Government Borrowing Rose in August as Budget Looms","url":"https://www.wsj.com/economy/uk-government-borrowing-rose-in-august-as-budget-looms-1b5afb71","summary":"","digestN":118,"opinion":false},{"n":119,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"Trump Looks to Sideline Canadian Potash With Belarusian Supply Deal","url":"https://www.wsj.com/economy/trade/trump-looks-to-sideline-canadian-potash-with-belarusian-supply-deal-4a7eb147","summary":"","digestN":119,"opinion":false},{"n":120,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"How Harley-Davidson, an American Icon, Became a Tariff Punching Bag","url":"https://www.wsj.com/economy/trade/how-harley-davidson-an-american-icon-became-a-tariff-punching-bag-3eb09c06","summary":"","digestN":120,"opinion":false},{"n":121,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"Government Bond Yields Fall as Risk Sentiment Tentatively Improves","url":"https://www.wsj.com/economy/central-banking/government-bond-yields-fall-as-risk-sentiment-tentatively-improves-eba4b0ef","summary":"","digestN":121,"opinion":false},{"n":122,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"Buying a First Home Isn’t Completely Impossible. You Just Have to Learn to Settle.","url":"https://www.wsj.com/economy/housing/buying-a-first-home-isnt-completely-impossible-you-just-have-to-learn-to-settle-a4dce9e9","summary":"","digestN":122,"opinion":false},{"n":123,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"Week Ahead for FX, Bonds: U.S. PMI Data, Various Central Bank Decisions in Focus","url":"https://www.wsj.com/economy/week-ahead-for-fx-bonds-u-s-pmi-data-various-central-bank-decisions-in-focus-1be5eb5a","summary":"","digestN":123,"opinion":false},{"n":124,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"U.S. Leading Indicators Ticked Down in August","url":"https://www.wsj.com/economy/u-s-leading-indicators-ticked-down-in-august-beefb989","summary":"","digestN":124,"opinion":false},{"n":125,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"U.S. Industrial Production Unchanged in August","url":"https://www.wsj.com/economy/central-banking/u-s-industrial-production-unchanged-in-august-1da4acad","summary":"","digestN":125,"opinion":false},{"n":126,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"U.K. Retail Sales Climbed Despite Inflation Pickup","url":"https://www.wsj.com/business/retail/u-k-retail-sales-climbed-despite-inflation-pickup-38c9bb67","summary":"","digestN":126,"opinion":false},{"n":127,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"Yen Swings as Markets Digest Bank of Japan’s Rate Path","url":"https://www.wsj.com/economy/central-banking/japans-central-bank-picks-up-pace-of-tightening-with-rate-hike-dc59f741","summary":"","digestN":127,"opinion":false},{"n":128,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"Bank of Japan Raises Rates, Making U.S. Less Alluring for Tokyo Investors","url":"https://www.wsj.com/economy/central-banking/bank-of-japan-raises-benchmark-interest-rate-to-1-25-highest-level-since-1995-2b28cbe9","summary":"","digestN":128,"opinion":false},{"n":129,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"RBA Governor Bullock Says Inflation Fears Materializing","url":"https://www.wsj.com/economy/central-banking/rba-governor-bullock-says-inflation-fears-materializing-03e52081","summary":"","digestN":129,"opinion":false},{"n":130,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"Weeks Before the Midterms, Almost Everything Is Getting More Expensive","url":"https://www.wsj.com/economy/weeks-before-the-midterms-almost-everything-is-getting-more-expensive-5b201bb5","summary":"","digestN":130,"opinion":false},{"n":131,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"Why the Bank of England Didn’t Follow the Fed in Raising Interest Rates","url":"https://www.wsj.com/economy/central-banking/why-the-bank-of-england-didnt-follow-the-fed-in-raising-interest-rates-007dc4a4","summary":"","digestN":131,"opinion":false},{"n":132,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"America Made Me Very Rich. There’s a Pro-Market Way to Give Back.","url":"https://www.wsj.com/economy/market-humanism-nick-hanauer-fba8b428","summary":"","digestN":132,"opinion":false},{"n":133,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"U.S. Treasury Yields Fall as Fed Regains Trust, BOE Leaves Rates Unchanged","url":"https://www.wsj.com/economy/central-banking/u-s-treasury-yields-fall-as-market-regains-trust-in-feds-inflation-resolve-62beaf8e","summary":"","digestN":133,"opinion":false},{"n":134,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"Canada Producer Prices Continue to Increase on Energy Costs","url":"https://www.wsj.com/economy/canada-producer-prices-continue-to-increase-on-energy-costs-caede917","summary":"","digestN":134,"opinion":false},{"n":135,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"U.S. Housing Starts Fell in August","url":"https://www.wsj.com/economy/housing/u-s-housing-starts-fell-in-august-56abae28","summary":"","digestN":135,"opinion":false},{"n":136,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"U.S. Jobless Claims Tumbled Last Week","url":"https://www.wsj.com/economy/jobs/u-s-jobless-claims-tumbled-last-week-00f109ae","summary":"","digestN":136,"opinion":false},{"n":137,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"Taiwan Central Bank Holds Rates, Raises Growth and Inflation Forecasts","url":"https://www.wsj.com/economy/central-banking/taiwan-central-bank-holds-rates-steady-despite-higher-energy-costs-324ba626","summary":"","digestN":137,"opinion":false},{"n":138,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"Warsh Takes Hawkish Turn With Rate Rise and Hints of More to Come","url":"https://www.wsj.com/economy/central-banking/warsh-takes-hawkish-turn-with-rate-rise-and-hints-of-more-to-come-d52c6ad9","summary":"","digestN":138,"opinion":false},{"n":139,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"Trump Says He Backs Warsh After Central Bank Raised Interest Rates","url":"https://www.wsj.com/economy/central-banking/trump-says-he-backs-warsh-after-central-bank-raised-interest-rates-cff88294","summary":"","digestN":139,"opinion":false},{"n":140,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"Brazil’s Central Bank Lowers For Fifth Straight Meeting as Inflation Cools","url":"https://www.wsj.com/economy/central-banking/brazils-central-bank-lowers-for-fifth-straight-meeting-as-inflation-cools-7977cc0c","summary":"","digestN":140,"opinion":false},{"n":141,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"The Key Takeaways From Kevin Warsh’s Press Conference","url":"https://www.wsj.com/economy/central-banking/the-key-takeaways-from-kevin-warshs-press-conference-fb0522fd","summary":"","digestN":141,"opinion":false},{"n":142,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"How to Know When the AI Boom Is About to Go Bust","url":"https://www.wsj.com/finance/stocks/how-to-know-when-the-ai-boom-is-about-to-go-bust-61af3d26","summary":"","digestN":142,"opinion":false},{"n":143,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"Stocks Are Defying Surging Bond Yields. Here’s What History Says Could Come Next.","url":"https://www.wsj.com/finance/investing/stocks-are-defying-surging-bond-yields-heres-what-history-says-could-come-next-7d13bb2d","summary":"","digestN":143,"opinion":false},{"n":144,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"Stocks Rise to Cap Week of Increasing Yields, Volatile Oil Prices","url":"https://www.wsj.com/finance/stocks/stocks-rise-to-cap-week-of-increasing-yields-volatile-oil-prices-de1cba89","summary":"","digestN":144,"opinion":false},{"n":145,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"Don’t Fall for Bond Funds That Say They’re Beating the Market","url":"https://www.wsj.com/finance/investing/dont-fall-for-bond-funds-that-say-theyre-beating-the-market-fe8876d4","summary":"","digestN":145,"opinion":false},{"n":146,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"Blackstone’s Top Private-Equity Executive Is Preparing to Leave Firm","url":"https://www.wsj.com/finance/investing/blackstones-top-private-equity-executive-is-preparing-to-leave-firm-6d7057db","summary":"","digestN":146,"opinion":false},{"n":147,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"Florida Railroad Brightline Files for Bankruptcy to Cut Heavy Debt Burden","url":"https://www.wsj.com/pro/bankruptcy/florida-railroad-brightline-files-for-bankruptcy-to-cut-heavy-debt-burden-3f7e1c42","summary":"","digestN":147,"opinion":false},{"n":148,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"Cracks in Oracle’s AI Data Center Build-Out Appear in New Mexico Project","url":"https://www.wsj.com/finance/investing/cracks-in-oracles-ai-data-center-build-out-appear-in-massive-new-mexico-project-effb51c2","summary":"","digestN":148,"opinion":false},{"n":149,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"The Robust U.S. Economy Powers Through Rate Hikes and Rising Bond Yields","url":"https://www.wsj.com/finance/investing/us-economy-bond-market-0bfda8b3","summary":"","digestN":149,"opinion":false},{"n":150,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"Bond Traders Are Paying Too Much Attention to the Oil Price","url":"https://www.wsj.com/finance/investing/bond-traders-are-paying-too-much-attention-to-the-oil-price-faa6a6cb","summary":"","digestN":150,"opinion":false},{"n":151,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"Leslie’s Prepares Chapter 11 Filing as Soon as Next Week in Houston","url":"https://www.wsj.com/pro/bankruptcy/leslies-prepares-chapter-11-filing-as-soon-as-next-week-in-houston-a2e04917","summary":"","digestN":151,"opinion":false},{"n":152,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"WSJ Dollar Index Rises 0.63% This Week to 96.70","url":"https://www.wsj.com/finance/currencies/asian-currencies-consolidate-as-treasury-yields-hit-new-highs-50a63fb4","summary":"","digestN":152,"opinion":false},{"n":153,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"U.S. Stocks Rise To End Volatile Week","url":"https://www.wsj.com/finance/stocks/u-s-stocks-rise-to-end-volatile-week-c8b2dc82","summary":"","digestN":153,"opinion":false},{"n":154,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"Treasury Yields at Multi-Year Highs Ahead of PCE, Payrolls","url":"https://www.wsj.com/finance/jgb-yields-rise-after-sharp-gains-in-u-s-treasury-yields-487f64c2","summary":"","digestN":154,"opinion":false},{"n":155,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"Oil Futures End Volatile Week With Mixed Results","url":"https://www.wsj.com/finance/commodities-futures/oil-pulls-back-as-cautious-hopes-compete-with-escalation-d3308b21","summary":"","digestN":155,"opinion":false},{"n":156,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"U.S. Natural-Gas Futures Settle Lower","url":"https://www.wsj.com/finance/commodities-futures/european-gas-prices-headed-for-5-weekly-loss-but-storage-concerns-remain-in-focus-518cf44c","summary":"","digestN":156,"opinion":false},{"n":157,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"Gold Futures Settle Higher As Dollar Slips","url":"https://www.wsj.com/finance/commodities-futures/gold-falls-amid-expectations-for-fed-rate-increase-368c44e9","summary":"","digestN":157,"opinion":false},{"n":158,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"Treasury Bond Yields Resume Their March Higher to End the Week","url":"https://www.wsj.com/finance/investing/u-s-treasury-yields-stay-near-multiyear-highs-in-asian-trade-69ae3ed8","summary":"","digestN":158,"opinion":false},{"n":159,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"AI Is Supercharging Stock Scams","url":"https://www.wsj.com/finance/investing/ai-is-supercharging-stock-scams-62fb2811","summary":"","digestN":159,"opinion":false},{"n":160,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"European AI-Related Stocks Rally as Confidence Returns","url":"https://www.wsj.com/finance/stocks/nikkei-rises-0-5-led-by-bank-stocks-84a84690","summary":"","digestN":160,"opinion":false},{"n":161,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"Bank Lending to Eurozone Businesses Halved in August","url":"https://www.wsj.com/finance/banking/bank-lending-to-eurozone-businesses-halved-in-august-11b0ec4b","summary":"","digestN":161,"opinion":false},{"n":162,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"Asian Bond Yields Rise Despite Oil Decline as Caution Reigns","url":"https://www.wsj.com/finance/stocks/asian-bond-yields-rise-despite-oil-decline-as-caution-reigns-956be482","summary":"","digestN":162,"opinion":false},{"n":163,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"Trump Expressed Concerns About Yen Weakness, Japan Finance Minister Says","url":"https://www.wsj.com/finance/currencies/trump-expressed-concerns-about-yen-weakness-japan-finance-minister-says-59dee203","summary":"","digestN":163,"opinion":false},{"n":164,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"WSJ Dollar Index Rises 0.19% to 96.97","url":"https://www.wsj.com/finance/currencies/asian-currencies-broadly-weaken-as-treasury-yields-surge-d5c5d1cf","summary":"","digestN":164,"opinion":false},{"n":165,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"Oil Futures Post Back-to-Back Gains on Escalation Concerns","url":"https://www.wsj.com/finance/commodities-futures/oil-falls-on-larger-than-expected-build-in-u-s-inventories-12eb501b","summary":"","digestN":165,"opinion":false},{"n":166,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"Treasury Yields Rise at Slower Pace","url":"https://www.wsj.com/finance/jgb-yields-rise-after-sharp-overnight-gains-in-u-s-treasurys-11ca60ce","summary":"","digestN":166,"opinion":false},{"n":167,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"Stocks Climb Back To Par","url":"https://www.wsj.com/finance/stocks/stocks-climb-back-to-par-598f973c","summary":"","digestN":167,"opinion":false},{"n":168,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"U.S. Treasury Yields Hit Multiyear Highs on Economic Data, Fed Rate-Boost Expectations","url":"https://www.wsj.com/finance/u-s-treasury-yields-hover-close-to-multiyear-highs-a9126b6e","summary":"","digestN":168,"opinion":false},{"n":169,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"Raging Conflict in the Middle East and Rising Yields Weigh on U.S. Stocks","url":"https://www.wsj.com/finance/investing/raging-conflict-in-the-middle-east-and-rising-yields-weigh-on-u-s-stocks-88265952","summary":"","digestN":169,"opinion":false},{"n":170,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"U.S. Natural Gas Futures Rise Sharply on Pipeline Outage","url":"https://www.wsj.com/finance/commodities-futures/european-gas-prices-rise-as-storage-levels-worry-market-2ac6836d","summary":"","digestN":170,"opinion":false},{"n":171,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"Bond Selloff Worsens, Dinging Stocks","url":"https://www.wsj.com/finance/commodities-futures/global-bond-selloff-continues-stock-futures-drop-549047fd","summary":"","digestN":171,"opinion":false},{"n":172,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"Gold Futures Settle Lower With As U.S. Yields Rise","url":"https://www.wsj.com/finance/commodities-futures/gold-muted-as-oil-treasury-yields-resume-climb-10080af9","summary":"","digestN":172,"opinion":false},{"n":173,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"A Guide to Owning Bonds When They Are Selling Off","url":"https://www.wsj.com/finance/investing/a-guide-to-owning-bonds-when-they-are-selling-off-be8e0a2b","summary":"","digestN":173,"opinion":false},{"n":174,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"BlackRock Investment Portfolios Debut on the Blockchain as Digital Tokens","url":"https://www.wsj.com/finance/investing/blackrock-investment-portfolios-debut-on-the-blockchain-as-digital-tokens-c9df7ca6","summary":"","digestN":174,"opinion":false},{"n":175,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"You Can’t Be Like Warren Buffett—Not Even He Could Again","url":"https://www.wsj.com/finance/investing/you-cant-be-like-warren-buffettnot-even-he-could-again-c60d88f0","summary":"","digestN":175,"opinion":false},{"n":176,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"Owning a Home Is Seen as a Financial Holy Grail. But What If It Isn’t?","url":"https://www.wsj.com/finance/investing/renting-buying-home-investment-022abf17","summary":"","digestN":176,"opinion":false},{"n":177,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"In the Age of AI, Cash Is Still King","url":"https://www.wsj.com/finance/investing/in-the-age-of-ai-cash-is-still-king-d527ee2d","summary":"","digestN":177,"opinion":false},{"n":178,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"National Stock Exchange of India Rises in Trading Debut","url":"https://www.wsj.com/finance/stocks/national-stock-exchange-of-india-rises-in-trading-debut-0b9b147d","summary":"","digestN":178,"opinion":false},{"n":179,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"European Stocks Fall at Open as Banks, Tech Slide","url":"https://www.wsj.com/finance/stocks/nikkei-rises-1-8-led-by-chip-related-stocks-73eeb3c9","summary":"","digestN":179,"opinion":false},{"n":180,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"Activist Starboard Urges Construction Company to Explore Sale","url":"https://www.wsj.com/finance/activist-starboard-urges-construction-company-to-explore-sale-1c770370","summary":"","digestN":180,"opinion":false},{"n":181,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"Florida Railroad Brightline Plans Imminent Chapter 11 in New Jersey","url":"https://www.wsj.com/pro/bankruptcy/florida-railroad-brightline-plans-imminent-chapter-11-in-new-jersey-92faff39","summary":"","digestN":181,"opinion":false},{"n":182,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"A Perfect Storm Is Raging in the Bond Market","url":"https://www.wsj.com/finance/investing/a-perfect-storm-is-raging-in-the-bond-market-43d9b44b","summary":"","digestN":182,"opinion":false},{"n":183,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"Wells Fargo Names COO Powell as Next Chief Risk Officer","url":"https://www.wsj.com/finance/banking/wells-fargo-names-coo-powell-as-next-chief-risk-officer-9e23ddd2","summary":"","digestN":183,"opinion":false},{"n":184,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"Treasury Yields Resume Their Rise","url":"https://www.wsj.com/finance/stocks/treasury-yields-resume-their-rise-f1717b38","summary":"","digestN":184,"opinion":false},{"n":185,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"U.S. Stocks Drop as Treasury Yields Surge","url":"https://www.wsj.com/finance/investing/u-s-stocks-drop-as-treasury-yields-surge-e5fdcfaf","summary":"","digestN":185,"opinion":false},{"n":186,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"Ten-Year Treasury Yield Reaches 19-Year High Amid Broad Bonds Selloff","url":"https://www.wsj.com/finance/investing/ten-year-treasury-yield-reaches-19-year-high-amid-broad-bonds-selloff-087132fb","summary":"","digestN":186,"opinion":false},{"n":187,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"Oil Futures Pick Up After Losing Streak","url":"https://www.wsj.com/finance/commodities-futures/oil-falls-as-mideast-developments-remain-in-focus-9a5a30e4","summary":"","digestN":187,"opinion":false},{"n":188,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"U.S. Natural Gas Futures Settle Higher","url":"https://www.wsj.com/finance/commodities-futures/u-s-natural-gas-futures-hold-steady-in-early-trading-503e8cd3","summary":"","digestN":188,"opinion":false},{"n":189,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"U.S. Stocks Decline as Treasury Selloff Deepens","url":"https://www.wsj.com/finance/investing/stock-futures-nudge-higher-as-markets-weigh-middle-east-diplomacy-b297db8c","summary":"","digestN":189,"opinion":false},{"n":190,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"Gold Settles Lower As U.S. Dollar, Yields Rise","url":"https://www.wsj.com/finance/commodities-futures/gold-edges-up-as-markets-weigh-oil-pullback-af01967f","summary":"","digestN":190,"opinion":false},{"n":191,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Iran Says Won’t Soften Demands After Trump Rejects Hormuz Offer","url":"https://www.bloomberg.com/news/articles/2026-09-27/iran-says-won-t-soften-demands-after-trump-rejects-hormuz-offer","summary":"","digestN":191,"opinion":false,"featured":"Bloomberg"},{"n":192,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Qatar Has a Message for ‘Troublemakers’ and ‘Saboteurs’ Blocking Peace","url":"https://www.bloomberg.com/features/2026-qatar-mohammed-abdulrahman-al-thani-weekend-interview/","summary":"","digestN":192,"opinion":false},{"n":193,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Iran-Linked Oil Tankers Seized by Navy Sailing Toward US","url":"https://www.bloomberg.com/news/articles/2026-09-25/iran-linked-oil-tankers-seized-by-navy-sailing-slowly-toward-us","summary":"","digestN":193,"opinion":false},{"n":194,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Here’s a Comparison of US, China Readouts on Trump-Xi Summit","url":"https://www.bloomberg.com/news/articles/2026-09-26/here-s-a-comparison-of-us-china-readouts-on-trump-xi-summit","summary":"","digestN":194,"opinion":false},{"n":195,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"China Conducts Air-Sea Exercise Near Scarborough Shoal on Sunday","url":"https://www.bloomberg.com/news/articles/2026-09-27/china-conducts-air-sea-exercise-near-scarborough-shoal-on-sunday","summary":"","digestN":195,"opinion":false},{"n":196,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Russia Strikes Kill Four in Ukraine, Damage Kyiv Data Center","url":"https://www.bloomberg.com/news/articles/2026-09-27/russian-strikes-kill-four-in-ukraine-damage-kyiv-data-center","summary":"","digestN":196,"opinion":false},{"n":197,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"White House Signals It Won’t Ban Diesel Exports, Senator Says","url":"https://www.bloomberg.com/news/articles/2026-09-26/white-house-signals-it-won-t-ban-diesel-exports-senator-says","summary":"","digestN":197,"opinion":false,"featured":"Bloomberg"},{"n":198,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"China Pushes to Fill Trump’s Void Across Range of UN Activities","url":"https://www.bloomberg.com/news/articles/2026-09-25/china-pushes-to-fill-trump-s-void-across-range-of-un-activities","summary":"","digestN":198,"opinion":false},{"n":199,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Mexico Is ‘Cautiously Optimistic’ on Talks for US Trade Deal","url":"https://www.bloomberg.com/news/articles/2026-09-25/mexico-s-top-diplomat-cites-cautious-optimism-on-us-trade-talks","summary":"","digestN":199,"opinion":false},{"n":200,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Swiss Voters Reject Bid to Enshrine Stricter Neutrality","url":"https://www.bloomberg.com/news/articles/2026-09-27/swiss-voters-reject-bid-to-enshrine-stricter-neutrality","summary":"","digestN":200,"opinion":false},{"n":201,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Rate Market Fear Gauge Is Warning for Corporate Bonds","url":"https://www.bloomberg.com/news/articles/2026-09-26/rate-market-fear-gauge-is-warning-for-corporates-credit-weekly","summary":"","digestN":201,"opinion":false},{"n":202,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Why High Bond Yields Look Like the New Normal","url":"https://www.bloomberg.com/news/articles/2026-09-25/why-high-yields-on-us-treasury-bonds-government-debt-look-like-the-new-normal","summary":"","digestN":202,"opinion":false},{"n":203,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Fed’s Hammack Says Yields Reflect Growth, US Debt and Rate Path","url":"https://www.bloomberg.com/news/articles/2026-09-25/fed-s-hammack-says-yields-reflect-growth-us-debt-and-rate-path","summary":"","digestN":203,"opinion":false},{"n":204,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Four ECB Scenarios Sketch a Succession Plan for Post-Lagarde Era","url":"https://www.bloomberg.com/news/articles/2026-09-27/four-ecb-scenarios-sketch-a-succession-plan-for-post-lagarde-era","summary":"","digestN":204,"opinion":false},{"n":205,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"ECB’s Vujcic Says Energy Prices Will Stay ‘Higher for Longer’","url":"https://www.bloomberg.com/news/articles/2026-09-25/ecb-s-vujcic-says-energy-prices-will-stay-higher-for-longer","summary":"","digestN":205,"opinion":false},{"n":206,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"SNB Is in Comfortable Situation on Inflation, Schlegel Tells SRF","url":"https://www.bloomberg.com/news/articles/2026-09-26/snb-is-in-comfortable-situation-on-inflation-schlegel-tells-srf","summary":"","digestN":206,"opinion":false},{"n":207,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Hedge Funds Cut Bullish Yen Bets as BOJ Held Back on Rate Vows","url":"https://www.bloomberg.com/news/articles/2026-09-25/hedge-funds-cut-bullish-yen-bets-as-boj-held-back-on-rate-vows","summary":"","digestN":207,"opinion":false},{"n":208,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Dutch Need to Keep State Debt in Check, Central Bank Chief Says","url":"https://www.bloomberg.com/news/articles/2026-09-27/dutch-need-to-keep-state-debt-in-check-central-bank-chief-says","summary":"","digestN":208,"opinion":false},{"n":209,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Australian Treasurer Flags Smaller-Than-Forecast Budget Deficit","url":"https://www.bloomberg.com/news/articles/2026-09-27/australia-s-budget-deficit-billions-smaller-than-expected-treasurer-says","summary":"","digestN":209,"opinion":false},{"n":210,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Why US Homebuyers Are Facing 7% Mortgage Rates Again","url":"https://www.bloomberg.com/news/articles/2026-09-27/why-us-mortgage-rates-are-above-7-again","summary":"","digestN":210,"opinion":false,"featured":"Bloomberg"},{"n":211,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Prospect Capital Junk-Bond Sale Comes With 8% Yield Whisper","url":"https://www.bloomberg.com/news/articles/2026-09-25/prospect-capital-junk-bond-sale-comes-with-8-yield-whisper","summary":"","digestN":211,"opinion":false},{"n":212,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Bangladesh Targets Up to $1 Billion in Debut Sovereign Bond Sale","url":"https://www.bloomberg.com/news/articles/2026-09-26/bangladesh-targets-up-to-1-billion-in-debut-sovereign-bond-sale","summary":"","digestN":212,"opinion":false},{"n":213,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"T. Rowe Seeks to Ringfence $165 Billion EM Book From El Niño Fallout","url":"https://www.bloomberg.com/news/articles/2026-09-27/t-rowe-seeks-to-ringfence-165-billion-em-book-from-el-nino-fallout","summary":"","digestN":213,"opinion":false},{"n":214,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"How India Built and Broke the World’s Biggest Options Market","url":"https://www.bloomberg.com/features/2026-india-options-market-boom-bust-sebi/","summary":"","digestN":214,"opinion":false},{"n":215,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Saudi Aramco Is Said to Work With Evercore on Gas Unit Plans","url":"https://www.bloomberg.com/news/articles/2026-09-26/saudi-aramco-is-said-to-work-with-evercore-on-gas-unit-plans","summary":"","digestN":215,"opinion":false},{"n":216,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Nubank Said in Talks to Buy Monzo for Up to £10 Billion","url":"https://www.bloomberg.com/news/articles/2026-09-26/monzo-in-talks-on-possible-sale-to-brazil-s-nubank-sky-reports","summary":"","digestN":216,"opinion":false},{"n":217,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Gold Fields Said to Express Interest in Buying Northern Star","url":"https://www.bloomberg.com/news/articles/2026-09-26/gold-fields-is-said-to-express-interest-in-buying-northern-star","summary":"","digestN":217,"opinion":false},{"n":218,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Billionaire Charoen’s Asset World Targets $1 Billion REIT IPO","url":"https://www.bloomberg.com/news/articles/2026-09-26/billionaire-charoen-s-asset-world-targets-1-billion-reit-ipo","summary":"","digestN":218,"opinion":false},{"n":219,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Blackstone Cements Shift From Star Dealmakers With Baratta Exit","url":"https://www.bloomberg.com/news/articles/2026-09-26/blackstone-cements-shift-from-star-dealmakers-with-baratta-exit","summary":"","digestN":219,"opinion":false},{"n":220,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Hudson Bay Scraps Private Credit Push as BlackRock Duo Exit","url":"https://www.bloomberg.com/news/articles/2026-09-25/blackrock-duo-depart-hudson-bay-as-it-scraps-private-credit-push","summary":"","digestN":220,"opinion":false},{"n":221,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Trillion-Dollar Listings Are Ruining IPOs","url":"https://www.bloomberg.com/opinion/articles/2026-09-25/spacex-anthropic-listings-are-part-of-what-ails-the-ipo-market","summary":"","digestN":221,"opinion":true},{"n":222,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Private Equity’s Path to Riches Is Getting Harder to Follow","url":"https://www.bloomberg.com/news/features/2026-09-24/private-equity-jobs-lose-appeal-as-carried-interest-payouts-shrink","summary":"","digestN":222,"opinion":false},{"n":223,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Morgan Stanley’s Co-Head of Public Finance Banking Leaves Firm","url":"https://www.bloomberg.com/news/articles/2026-09-25/morgan-stanley-s-co-head-of-public-finance-banking-leaves-firm","summary":"","digestN":223,"opinion":false},{"n":224,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"BBVA Set to Open Investment Banking Office in Miami Amid US Push","url":"https://www.bloomberg.com/news/articles/2026-09-25/bbva-set-to-open-investment-banking-office-in-miami-amid-us-push","summary":"","digestN":224,"opinion":false},{"n":225,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"OpenAI Pauses Training Most Capable Models After Sandbox Escape","url":"https://www.bloomberg.com/news/articles/2026-09-26/another-openai-sandbox-failed-ai-agent-gained-internet-access","summary":"","digestN":225,"opinion":false},{"n":226,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Here’s Why an AI ‘Kill Switch’ May Not Be So Simple","url":"https://www.bloomberg.com/news/articles/2026-09-26/what-is-an-ai-kill-switch-why-shutting-down-ai-isn-t-so-simple","summary":"","digestN":226,"opinion":false},{"n":227,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Australia Senate Requests OpenAI, Anthropic CEOs Face AI Inquiry","url":"https://www.bloomberg.com/news/articles/2026-09-27/australia-senate-requests-openai-anthropic-ceos-face-ai-inquiry","summary":"","digestN":227,"opinion":false},{"n":228,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"China’s Consumer Stocks Face Lost Decade as AI Steals Spotlight","url":"https://www.bloomberg.com/news/articles/2026-09-27/china-s-consumer-stocks-face-lost-decade-as-ai-steals-spotlight","summary":"","digestN":228,"opinion":false},{"n":229,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Nscale Raises $3.36 Billion in Pre-IPO Round Led by Third Point","url":"https://www.bloomberg.com/news/articles/2026-09-25/nscale-raises-3-36-billion-in-pre-ipo-round-led-by-third-point","summary":"","digestN":229,"opinion":false},{"n":230,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Bitget Hack Pushes North Korean Crypto Haul Past $1 Billion","url":"https://www.bloomberg.com/news/articles/2026-09-25/bitget-hack-pushes-north-korean-crypto-haul-past-1-billion","summary":"","digestN":230,"opinion":false},{"n":231,"source":"FT","section":"FT - Front Page","author":"","headline":"US housing crunch puts private equity in midterm campaign crosshairs","url":"https://www.ft.com/content/7e91f857-30d9-4bf9-b7c9-ec04d4a6e1ed","summary":"","digestN":231,"opinion":false},{"n":232,"source":"FT","section":"FT - Front Page","author":"","headline":"Trump and Xi to meet twice more after summit fails to resolve tensions","url":"https://www.ft.com/content/bd99d372-d3d1-4972-a3fe-1bed8f71e14c","summary":"","digestN":232,"opinion":false},{"n":233,"source":"FT","section":"FT - Front Page","author":"","headline":"Gold-rich Nicaragua hands Chinese miners rights to a tenth of its land","url":"https://www.ft.com/content/452648fd-90d6-450f-9739-073f5b6a0d18","summary":"","digestN":233,"opinion":false},{"n":234,"source":"FT","section":"FT - Front Page","author":"","headline":"Investors pursue Dubai investment group over missing payments","url":"https://www.ft.com/content/39eb5cb2-f73e-4c18-8357-f7378428c8e1","summary":"","digestN":234,"opinion":false},{"n":235,"source":"FT","section":"FT - Front Page","author":"","headline":"Private credit turmoil eases as investor withdrawals slow","url":"https://www.ft.com/content/f342efa7-96b0-4bb2-aa19-fae740d8c286","summary":"","digestN":235,"opinion":false},{"n":236,"source":"FT","section":"FT - Companies & Markets","author":"","headline":"Armani to kick off stake sale talks with LVMH and L’Oréal","url":"https://www.ft.com/content/8dd0d877-5254-48d5-ae33-c181bf9d3c64","summary":"","digestN":236,"opinion":false},{"n":237,"source":"FT","section":"FT - Companies & Markets","author":"","headline":"Foreign capital flows into US stocks hit record as appetite for debt fades","url":"https://www.ft.com/content/a1a1318b-8051-4539-a485-5a4e1d021578","summary":"","digestN":237,"opinion":false},{"n":238,"source":"FT","section":"FT - Companies & Markets","author":"","headline":"De Beers bets on a taste for the real to restore diamonds’ sparkle","url":"https://www.ft.com/content/40ec5413-3990-40b8-8066-6d6c215626f7","summary":"","digestN":238,"opinion":false},{"n":239,"source":"FT","section":"FT - Companies & Markets","author":"","headline":"Big companies warn lack of ‘AI openness’ could hit investment in Europe","url":"https://www.ft.com/content/aeabd0d5-be0e-4270-987e-0b119b24b355","summary":"","digestN":239,"opinion":false},{"n":240,"source":"FT","section":"FT - Companies & Markets","author":"","headline":"Walmart chief rules out personalised pricing as AI transforms retail","url":"https://www.ft.com/content/632e21a3-b889-4423-a1d9-be16b3e680bd","summary":"","digestN":240,"opinion":false},{"n":241,"source":"FT","section":"FT - Companies & Markets","author":"","headline":"Value of old supertankers soars past new builds as market goes ‘bananas’","url":"https://www.ft.com/content/a2c22bca-f50a-440d-82f8-1a373859770d","summary":"","digestN":241,"opinion":false},{"n":242,"source":"FT","section":"FT - Companies & Markets","author":"","headline":"Europe braces for LNG tug of war with Asia","url":"https://www.ft.com/content/474ced6c-b6ba-4d03-af41-bab5fbb6d7e9","summary":"","digestN":242,"opinion":false},{"n":243,"source":"FT","section":"FT - Companies & Markets","author":"","headline":"Amazon’s $3bn bet on fast deliveries","url":"https://www.ft.com/content/09cf09c4-c6e1-4560-a085-f8504bc74f58","summary":"","digestN":243,"opinion":false},{"n":244,"source":"FT","section":"FT - Companies & Markets","author":"","headline":"Energy costs and AI power demand reshape climate talks in New York","url":"https://www.ft.com/content/8edbe5e7-19c6-44b9-9ada-16257f014a62","summary":"","digestN":244,"opinion":false},{"n":245,"source":"FT","section":"FT - Companies & Markets","author":"","headline":"Hackers hijack AI accounts and servers to fuel new cyber crime boom","url":"https://www.ft.com/content/3f406fbe-b72e-488f-9975-5b94e95dfe32","summary":"","digestN":245,"opinion":false},{"n":246,"source":"FT","section":"FT - Companies & Markets","author":"","headline":"Medicines run short in Iran under US sanctions","url":"https://www.ft.com/content/fb890a8d-f530-497e-8486-27186ee66b9b","summary":"","digestN":246,"opinion":false},{"n":247,"source":"FT","section":"FT - Companies & Markets","author":"","headline":"Apax nears deal to buy Warburg Pincus out of €6.5bn telecoms group Odido","url":"https://www.ft.com/content/ee4f58dd-a3bb-4d14-b28f-74da126e1002","summary":"","digestN":247,"opinion":false},{"n":248,"source":"FT","section":"FT - Companies & Markets","author":"","headline":"EU turns to Norway and Canada for space launch sites","url":"https://www.ft.com/content/f86e69de-92f2-489c-b7e6-8ede01e9fb8a","summary":"","digestN":248,"opinion":false},{"n":249,"source":"FT","section":"FT - Companies & Markets","author":"","headline":"Industrial glove giant stretches to high-tech sectors","url":"https://www.ft.com/content/530327bd-7524-4c25-b787-704300c295c4","summary":"","digestN":249,"opinion":false},{"n":250,"source":"FT","section":"FT - Companies & Markets","author":"","headline":"Brazil’s Lula to ban online gambling before election","url":"https://www.ft.com/content/bc2fd2af-479d-44d4-840b-40ef52b16241","summary":"","digestN":250,"opinion":false},{"n":251,"source":"FT","section":"FT - Companies & Markets","author":"","headline":"Will US jobs data add to pressure on Fed policymakers?","url":"https://www.ft.com/content/08fe7323-5a2f-4d46-ad64-132ce469b381","summary":"","digestN":251,"opinion":false},{"n":252,"source":"FT","section":"FT - Companies & Markets - Opinion","author":"","headline":"Can quantum turn ‘magic’ into money?","url":"https://www.ft.com/content/ae9eedd2-4530-47e4-be4b-242d0e2a6253","summary":"","digestN":252,"opinion":true},{"n":253,"source":"FT","section":"FT - Companies & Markets - Opinion","author":"","headline":"New Delhi becomes lobbying battleground in fight over Tata","url":"https://www.ft.com/content/43d16d38-23ab-4f13-ab7a-833a45e7643f","summary":"","digestN":253,"opinion":true},{"n":254,"source":"FT","section":"FT - Companies & Markets - Opinion","author":"","headline":"JPMorgan and the broking fetish for conviction calls","url":"https://www.ft.com/content/1993781c-e630-482d-a4e6-f17f7d79e92d","summary":"","digestN":254,"opinion":true},{"n":255,"source":"FT","section":"FT - Companies & Markets - Opinion","author":"","headline":"Bond ructions point to new danger zone in markets","url":"https://www.ft.com/content/4acbdc1f-d898-4966-b865-924470de0066","summary":"","digestN":255,"opinion":true},{"n":256,"source":"FT","section":"FT - Companies & Markets - Opinion","author":"","headline":"The climate doom-mongers now dread sovereign debt blowouts","url":"https://www.ft.com/content/9c071d82-4a23-4b77-b5dd-384e39a95140","summary":"","digestN":256,"opinion":true},{"n":257,"source":"FT","section":"FT - Companies & Markets - Opinion","author":"","headline":"Five is the magic number for US Treasuries","url":"https://www.ft.com/content/cf5cf060-401f-43cb-92d1-72afc38b3d3a","summary":"","digestN":257,"opinion":true},{"n":258,"source":"FT","section":"FT - Companies & Markets - Opinion","author":"","headline":"Alphaville. Are Big Tech bonds crowding out the US Treasury?","url":"https://www.ft.com/content/6354c1ec-286a-4251-bac8-ca0cd4ac7eac","summary":"","digestN":258,"opinion":true},{"n":259,"source":"FT","section":"FT - Companies & Markets - Recommended","author":"","headline":"Silicon Valley bets on the impossible again","url":"https://www.ft.com/content/0c440134-686f-4b55-ab35-2afe4e6a3f91","summary":"","digestN":259,"opinion":false},{"n":260,"source":"FT","section":"FT - Companies & Markets - Recommended","author":"","headline":"China tightens grip on Europe’s car supply chain","url":"https://www.ft.com/content/9f700b37-ac05-434c-9b70-3a7fe065c87e","summary":"","digestN":260,"opinion":false},{"n":261,"source":"FT","section":"FT - Companies & Markets - Recommended","author":"","headline":"European carmakers turn to Chinese rivals to fill factory floors","url":"https://www.ft.com/content/9a59bb55-d060-4002-bc4f-4563aa598b02","summary":"","digestN":261,"opinion":false},{"n":262,"source":"FT","section":"FT - Companies & Markets - Recommended","author":"","headline":"China’s best cars have yet to hit Europe","url":"https://www.ft.com/content/de2f1e69-791e-49d3-98f0-925b2697a5c5","summary":"","digestN":262,"opinion":false},{"n":263,"source":"FT","section":"FT - Companies & Markets - Recommended","author":"","headline":"The unlikely corporate winners of AI","url":"https://www.ft.com/content/5ede9d4d-3989-49b5-a282-4722c8d8fc59","summary":"","digestN":263,"opinion":false},{"n":264,"source":"FT","section":"FT - Companies & Markets - Recommended","author":"","headline":"The reclusive heirs in line for billions when Europe’s top tankmaker lists","url":"https://www.ft.com/content/a7123e93-beda-4ede-a96c-58b584b67498","summary":"","digestN":264,"opinion":false},{"n":265,"source":"FT","section":"FT - Companies & Markets - Most Read","author":"","headline":"Soaring bond yields ‘not even close’ to cooling red-hot US economy, investors say","url":"https://www.ft.com/content/bcf0715b-4292-428e-80ec-e6702d430aa4","summary":"","digestN":265,"opinion":false},{"n":266,"source":"FT","section":"FT - Companies & Markets - Most Read","author":"","headline":"Monzo in talks with Brazil’s Nubank about sale","url":"https://www.ft.com/content/e375ba2b-8033-426a-aa63-0f22dd06e689","summary":"","digestN":266,"opinion":false},{"n":267,"source":"Reuters","section":"Reuters","author":"","headline":"Trump rejects Iranian proposal to open Hormuz and end fighting","url":"https://www.reuters.com/world/middle-east/iran-awaits-us-move-after-wsj-report-says-trump-rejects-peace-plan-2026-09-26/","summary":"","digestN":267,"opinion":false,"featured":"Reuters"},{"n":268,"source":"Reuters","section":"Reuters","author":"","headline":"Swiss voters set to reject initiative to tighten neutrality rules","url":"https://www.reuters.com/world/swiss-voters-set-reject-initiative-tighten-neutrality-rules-2026-09-27/","summary":"","digestN":268,"opinion":false},{"n":269,"source":"Reuters","section":"Reuters","author":"","headline":"Swiss vote on tightening neutrality rules, ending peacetime cooperation with NATO","url":"https://www.reuters.com/world/swiss-vote-tightening-neutrality-rules-ending-peacetime-cooperation-with-nato-2026-09-27/","summary":"","digestN":269,"opinion":false},{"n":270,"source":"Reuters","section":"Reuters","author":"","headline":"Arming Taiwan an important US interest, Taipei official says after Trump-Xi summit","url":"https://www.reuters.com/world/china/arming-taiwan-an-important-us-interest-taipei-official-says-after-trump-xi-2026-09-26/","summary":"","digestN":270,"opinion":false,"featured":"Reuters"},{"n":271,"source":"Reuters","section":"Reuters","author":"","headline":"US jury says Apple owes record $5.7 billion in haptic technology patent case","url":"https://www.reuters.com/legal/litigation/us-jury-says-apple-owes-record-57-billion-haptic-technology-patent-case-2026-09-26/","summary":"","digestN":271,"opinion":false},{"n":272,"source":"Reuters","section":"Reuters","author":"","headline":"Wall Street ends higher as investors buy AI stocks; Microsoft rallies","url":"https://www.reuters.com/business/wall-st-futures-gain-ai-enthusiasm-eases-worries-over-higher-oil-prices-yields-2026-09-25/","summary":"","digestN":272,"opinion":false},{"n":273,"source":"Reuters","section":"Reuters","author":"","headline":"US appeals court rules against Kalshi, says states can regulate prediction markets","url":"https://www.reuters.com/business/finance/us-appeals-court-rules-against-kalshi-says-states-can-regulate-prediction-2026-09-25/","summary":"","digestN":273,"opinion":false},{"n":274,"source":"Reuters","section":"Reuters","author":"","headline":"Anthropic, OpenAI call for Australia to relax ban on training of AI models","url":"https://www.reuters.com/legal/litigation/anthropic-openai-call-australia-relax-ban-training-ai-models-2026-09-22/","summary":"","digestN":274,"opinion":false},{"n":275,"source":"Reuters","section":"Reuters","author":"","headline":"Iran's Araqchi says now up to US to accept 7-day plan","url":"https://www.reuters.com/world/middle-east/irans-araqchi-says-now-up-us-accept-7-day-plan-2026-09-25/","summary":"","digestN":275,"opinion":false},{"n":276,"source":"Reuters","section":"Reuters","author":"","headline":"Iran will make no nuclear concessions, Iranian official says","url":"https://www.reuters.com/world/middle-east/iran-will-make-no-nuclear-concessions-iranian-official-says-2026-09-25/","summary":"","digestN":276,"opinion":false},{"n":277,"source":"Reuters","section":"Reuters","author":"","headline":"Allies unite behind Saudi Arabia as Houthis step up attacks","url":"https://www.reuters.com/world/middle-east/allies-unite-behind-saudi-arabia-houthis-step-up-attacks-2026-09-25/","summary":"","digestN":277,"opinion":false},{"n":278,"source":"Reuters","section":"Reuters","author":"","headline":"Azerbaijan signs investment agreements worth more than $10 billion","url":"https://www.reuters.com/business/energy/azerbaijan-signs-investment-agreements-worth-more-than-10-billion-2026-09-26/","summary":"","digestN":278,"opinion":false},{"n":279,"source":"Reuters","section":"Reuters","author":"","headline":"OpenAI's models accessed public US Census, SEC data, Bloomberg News reports","url":"https://www.reuters.com/business/openais-models-accessed-public-us-census-sec-data-bloomberg-news-reports-2026-09-26/","summary":"","digestN":279,"opinion":false},{"n":280,"source":"CBC","section":"CBC","author":"","headline":"The incoming U.S. import bans on Canadian alcohol, whey, molasses and motorcycles, by the numbers","url":"https://www.cbc.ca/news/canada/donald-trump-bans-canadian-products-alcohol-whey-motorcycles-molasses-9.7356097","summary":"","digestN":280,"opinion":false,"featured":"CBC"},{"n":281,"source":"CBC","section":"CBC","author":"","headline":"If Trump bans U.S. diesel exports, global prices will go even higher, experts say","url":"https://www.cbc.ca/news/business/us-diesel-export-ban-9.7357460","summary":"","digestN":281,"opinion":false},{"n":282,"source":"CBC","section":"CBC","author":"","headline":"U.S.-China summit highlights the 'hypocrisy' of American trade policy, experts say","url":"https://www.cbc.ca/news/business/trump-trade-china-canada-9.7355480","summary":"","digestN":282,"opinion":false},{"n":283,"source":"CBC","section":"CBC","author":"","headline":"Justice Department under Trump asks EU to scrap $137M US fine for Elon Musk's X","url":"https://www.cbc.ca/news/world/us-justice-dept-musk-x-eu-9.7358411","summary":"","digestN":283,"opinion":false},{"n":284,"source":"CBC","section":"CBC","author":"","headline":"Volkswagen subsidiary delays opening of $7B St. Thomas, Ont., battery plant to 2029","url":"https://www.cbc.ca/news/canada/london/st-thomas-ev-battery-plant-delay-9.7356821","summary":"","digestN":284,"opinion":false},{"n":285,"source":"CBC","section":"CBC","author":"","headline":"Sobeys parent Empire agrees to end property controls after battle with Competition Bureau","url":"https://www.cbc.ca/news/business/competition-bureau-empire-property-controls-deal-9.7356543","summary":"","digestN":285,"opinion":false},{"n":286,"source":"CBC","section":"CBC","author":"","headline":"Sky-high diesel prices are troubling farmers, truckers in New Brunswick","url":"https://www.cbc.ca/news/canada/new-brunswick/diesel-prices-farmers-truckers-9.7358569","summary":"","digestN":286,"opinion":false},{"n":287,"source":"CBC","section":"CBC","author":"","headline":"Canpotex announces $500M project at Port of Vancouver to boost Sask. potash exports","url":"https://www.cbc.ca/news/canada/saskatchewan/sask-scott-moe-vancouver-port-canpotex-9.7358741","summary":"","digestN":287,"opinion":false},{"n":288,"source":"CBC","section":"CBC","author":"","headline":"Paramount settles with U.S. states over Warner Bros. merger, clearing way for $81B US deal","url":"https://www.cbc.ca/news/entertainment/paramount-settles-california-other-us-states-warner-bros-merger-9.7352512","summary":"","digestN":288,"opinion":false},{"n":289,"source":"CBC","section":"CBC","author":"","headline":"Flair CEO says budget airlines are feeling the effects of sky-high jet fuel costs","url":"https://www.cbc.ca/news/canada/edmonton/flair-ceo-budget-airlines-9.7353900","summary":"","digestN":289,"opinion":false},{"n":290,"source":"CBC","section":"CBC","author":"","headline":"Military commander vows fast action on AI and robots, sees 'untapped potential' for Canada","url":"https://www.cbc.ca/news/business/canada-ai-robots-miliatary-9.7353399","summary":"","digestN":290,"opinion":false},{"n":291,"source":"CBC","section":"CBC","author":"","headline":"Trump uses contested power to cut nearly $1B US in Congress-approved spending","url":"https://www.cbc.ca/news/world/trump-pocket-rescission-spending-cuts-9.7359457","summary":"","digestN":291,"opinion":false},{"n":292,"source":"BBC","section":"BBC","author":"","headline":"Iranian minister says only negotiation can end conflict after Trump rejects Hormuz deal","url":"https://www.bbc.com/news/articles/cmvgyyw2jeego","summary":"","digestN":292,"opinion":false},{"n":293,"source":"BBC","section":"BBC","author":"","headline":"Trump rejects Iran deal to reopen Strait of Hormuz in seven days","url":"https://www.bbc.com/news/articles/cqgmrr9ekr7ko","summary":"","digestN":293,"opinion":false},{"n":294,"source":"BBC","section":"BBC","author":"","headline":"Heathrow Airport's third runway may be delayed to 2039","url":"https://www.bbc.com/news/articles/crx2zz401935o","summary":"","digestN":294,"opinion":false},{"n":295,"source":"BBC","section":"BBC","author":"","headline":"UK gas and diesel prices hit highest since 2022","url":"https://www.bbc.com/news/articles/c20zgjzz0e4o","summary":"","digestN":295,"opinion":false},{"n":296,"source":"BBC","section":"BBC","author":"","headline":"Trump and Xi come face-to-face as US and China battle to win the AI race","url":"https://www.bbc.com/news/articles/c6gqdgg8w59xo","summary":"","digestN":296,"opinion":false},{"n":297,"source":"BBC","section":"BBC","author":"","headline":"Trump reveals millions of dollars' worth of share deals in big tech and AI","url":"https://www.bbc.com/news/articles/c6p3kxpp8lezo","summary":"","digestN":297,"opinion":false},{"n":298,"source":"BBC","section":"BBC","author":"","headline":"US backs Elon Musk's bid to overturn €120m EU fine against X","url":"https://www.bbc.com/news/articles/cq0m373ee0v0o","summary":"","digestN":298,"opinion":false},{"n":299,"source":"BBC","section":"BBC","author":"","headline":"US rejects pleas from OpenAI, Anthropic for global AI standards","url":"https://www.bbc.com/news/articles/ck87v27vdn1po","summary":"","digestN":299,"opinion":false},{"n":300,"source":"BBC","section":"BBC","author":"","headline":"Trump says he would back ban on diesel exports","url":"https://www.bbc.com/news/articles/cyvznqypz0yo","summary":"","digestN":300,"opinion":false},{"n":301,"source":"BBC","section":"BBC","author":"","headline":"Sir Jim Ratcliffe suspends production at key UK plants blaming high gas prices","url":"https://www.bbc.com/news/articles/cq0m3gmv8n7ko","summary":"","digestN":301,"opinion":false},{"n":302,"source":"BBC","section":"BBC","author":"","headline":"Unexpected UK borrowing surge adds to pre-Budget pressure on chancellor","url":"https://www.bbc.com/news/articles/ce9py7nx8j4o","summary":"","digestN":302,"opinion":false},{"n":303,"source":"BBC","section":"BBC","author":"","headline":"Diesel prices exceed £2 a litre at forecourts across Scotland","url":"https://www.bbc.com/news/articles/cr86xn04gxj9o","summary":"","digestN":303,"opinion":false}]};
+    const $ = (id) => document.getElementById(id);
+    const state = { stories: [], i: 0, selected: new Set() };
+    const card = $('card');
+    const stage = $('stage');
+    const toastEl = $('toast');
+
+    function toast(msg) {
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      clearTimeout(toastEl._t);
+      toastEl._t = setTimeout(() => toastEl.classList.remove('show'), 1800);
+    }
+
+    function current() {
+      return state.stories[state.i] || null;
+    }
+
+    function renderSelected() {
+      const nums = [...state.selected].map(n => {
+        const st = state.stories.find(x => x.n === n);
+        return (st && st.digestN != null) ? st.digestN : n;
+      }).sort((a,b)=>a-b);
+      $('btnCopy').textContent = nums.length
+        ? `Copy brief list (${nums.length})`
+        : 'Copy brief list';
+      $('selectedList').textContent = nums.length
+        ? `Selected: ${nums.join(', ')} — paste into News Headlines chat for detailed briefs.`
+        : 'No stories selected for briefing yet.';
+      const brief = card.querySelector('[data-brief]');
+      const s = current();
+      if (brief && s) {
+        const on = state.selected.has(s.n);
+        brief.classList.toggle('on', on);
+        brief.textContent = on ? 'Selected ✓' : 'Brief me';
+      }
+      const pillHost = card.querySelector('[data-meta]');
+      if (pillHost && s) {
+        const existing = pillHost.querySelector('.pill.selected');
+        const on = state.selected.has(s.n);
+        if (on && !existing) {
+          const p = document.createElement('span');
+          p.className = 'pill selected';
+          p.textContent = 'For brief';
+          pillHost.appendChild(p);
+        } else if (!on && existing) existing.remove();
+      }
+    }
+
+    function updateChrome() {
+      const total = state.stories.length || 1;
+      const i = state.i;
+      $('progressFill').style.width = (((i + 1) / total) * 100) + '%';
+      $('progressLabel').textContent = `${i + 1} / ${total}`;
+      const s = current();
+      const jump = $('jumpN');
+      if (jump && document.activeElement !== jump) {
+        const num = s && s.digestN != null ? s.digestN : (s ? s.n : '');
+        jump.value = num === '' ? '' : String(num);
+        jump.max = String(total);
+      }
+      if (s) {
+        document.title = `${s.source}: ${s.headline} · Headlines`;
+        const hashNum = s.digestN != null ? s.digestN : s.n;
+        const want = '#' + hashNum;
+        if (location.hash !== want) {
+          history.replaceState(null, '', want);
+        }
+      }
+      renderSelected();
+    }
+
+    function paintCard() {
+      const s = current();
+      card.innerHTML = '';
+      if (!s) return;
+
+      const top = document.createElement('div');
+      top.className = 'card-top';
+      const srcBlock = document.createElement('div');
+      srcBlock.className = 'source-block';
+      const source = document.createElement('h2');
+      source.className = 'source';
+      source.textContent = s.source || 'Source';
+      srcBlock.appendChild(source);
+      if (s.section || s.author) {
+        const row = document.createElement('div');
+        row.className = 'section-row';
+        const sec = document.createElement('div');
+        sec.className = 'section-line';
+        sec.textContent = s.section || '';
+        row.appendChild(sec);
+        if (s.author) {
+          const au = document.createElement('div');
+          au.className = 'author';
+          au.textContent = s.author;
+          row.appendChild(au);
+        }
+        srcBlock.appendChild(row);
+      }
+      top.appendChild(srcBlock);
+      const dig = document.createElement('div');
+      dig.className = 'digest';
+      dig.textContent = s.digestN != null ? `Digest #${s.digestN}` : `#${s.n}`;
+      top.appendChild(dig);
+      card.appendChild(top);
+
+      const h = document.createElement('h1');
+      h.className = 'headline';
+      h.textContent = s.headline;
+      card.appendChild(h);
+
+      const sum = document.createElement('p');
+      sum.className = 'summary';
+      sum.textContent = s.summary || 'Open the story, or tap Brief me and copy the list back into chat.';
+      card.appendChild(sum);
+
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      meta.dataset.meta = '1';
+      if (s.opinion) {
+        const p = document.createElement('span');
+        p.className = 'pill opinion';
+        p.textContent = 'Opinion';
+        meta.appendChild(p);
+      }
+      if (s.featured) {
+        const p = document.createElement('span');
+        p.className = 'pill featured';
+        p.textContent = s.featured;
+        meta.appendChild(p);
+      }
+      card.appendChild(meta);
+
+      const open = document.createElement('a');
+      open.className = 'open';
+      open.href = s.url;
+      open.target = '_blank';
+      open.rel = 'noopener noreferrer';
+      open.textContent = 'Open article →';
+      open.addEventListener('click', (e) => openExternal(s.url, e));
+      card.appendChild(open);
+
+      const actions = document.createElement('div');
+      actions.className = 'actions';
+      const skip = document.createElement('button');
+      skip.type = 'button';
+      skip.textContent = 'Skip';
+      skip.addEventListener('click', () => go(1));
+      const brief = document.createElement('button');
+      brief.type = 'button';
+      brief.className = 'good';
+      brief.dataset.brief = '1';
+      brief.textContent = 'Brief me';
+      brief.addEventListener('click', () => toggleBrief(s.n));
+      actions.appendChild(skip);
+      actions.appendChild(brief);
+      card.appendChild(actions);
+
+      card.style.transform = 'translateX(0)';
+      card.style.opacity = '1';
+      updateChrome();
+    }
+
+
+    // Publisher apps (esp. Globe) claim https links via App Links / Universal Links
+    // and then fail to load. Prefer the browser the user already has signed-in.
+    function openExternal(url, e) {
+      if (e) e.preventDefault();
+      if (!url) return;
+      const ua = navigator.userAgent || '';
+      if (/Android/i.test(ua)) {
+        try {
+          const u = new URL(url);
+          const intentUrl =
+            'intent://' + u.host + u.pathname + u.search + u.hash +
+            '#Intent;scheme=https;package=com.android.chrome;' +
+            'S.browser_fallback_url=' + encodeURIComponent(url) + ';end';
+          window.location.href = intentUrl;
+          return;
+        } catch (_) {}
+      }
+      if (/iPhone|iPad|iPod/i.test(ua)) {
+        window.open(siteUrl('open.html?u=') + encodeURIComponent(url), '_blank', 'noopener,noreferrer');
+        return;
+      }
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+
+    function go(delta) {
+      if (!state.stories.length) return;
+      const next = Math.max(0, Math.min(state.stories.length - 1, state.i + delta));
+      if (next === state.i) {
+        // bounce
+        card.style.transform = `translateX(${delta < 0 ? 12 : -12}px)`;
+        setTimeout(() => { card.style.transform = 'translateX(0)'; }, 120);
+        return;
+      }
+      const dir = next > state.i ? -1 : 1;
+      card.style.transform = `translateX(${dir * 28}px)`;
+      card.style.opacity = '0.35';
+      setTimeout(() => {
+        state.i = next;
+        paintCard();
+      }, 120);
+    }
+
+    function indexForNumber(num) {
+      const n = Number(num);
+      if (!Number.isFinite(n) || n < 1) return -1;
+      let idx = state.stories.findIndex(s => s.digestN === n);
+      if (idx < 0) idx = state.stories.findIndex(s => s.n === n);
+      return idx;
+    }
+
+    function goToNumber(num, { silent } = {}) {
+      const idx = indexForNumber(num);
+      if (idx < 0) {
+        if (!silent) toast(`No story #${num}`);
+        return false;
+      }
+      if (idx === state.i) {
+        paintCard();
+        return true;
+      }
+      card.style.transform = 'translateX(0)';
+      card.style.opacity = '0.35';
+      setTimeout(() => {
+        state.i = idx;
+        paintCard();
+      }, 80);
+      return true;
+    }
+
+    function parseJumpTarget() {
+      const params = new URLSearchParams(location.search);
+      const q = params.get('n') || params.get('story') || params.get('go');
+      if (q) return q;
+      const h = (location.hash || '').replace(/^#/, '').trim();
+      if (/^\d+$/.test(h)) return h;
+      const m = h.match(/^(?:n|story|go)=(\d+)$/i);
+      return m ? m[1] : null;
+    }
+
+    function toggleBrief(n) {
+      if (state.selected.has(n)) state.selected.delete(n);
+      else state.selected.add(n);
+      const st = state.stories.find(x => x.n === n);
+      const label = (st && st.digestN != null) ? st.digestN : n;
+      toast(state.selected.has(n) ? `Added #${label}` : `Removed #${label}`);
+      renderSelected();
+    }
+
+    async function copyList() {
+      const nums = [...state.selected].map(n => {
+        const st = state.stories.find(x => x.n === n);
+        return (st && st.digestN != null) ? st.digestN : n;
+      }).sort((a,b)=>a-b);
+      if (!nums.length) {
+        toast('Select at least one story first');
+        return;
+      }
+      const text = nums.join(', ');
+      try {
+        await navigator.clipboard.writeText(text);
+        toast(`Copied: ${text}`);
+      } catch {
+        prompt('Copy these numbers into News Headlines chat:', text);
+      }
+    }
+
+    $('btnNext').onclick = () => go(1);
+    $('btnPrev').onclick = () => go(-1);
+    $('btnCopy').onclick = copyList;
+    $('jumpForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const v = $('jumpN').value.trim();
+      if (!v) return;
+      goToNumber(v);
+      $('jumpN').blur();
+    });
+    $('progressLabel').addEventListener('click', () => {
+      const el = $('jumpN');
+      el.focus();
+      el.select();
+    });
+
+    window.addEventListener('hashchange', () => {
+      const t = parseJumpTarget();
+      if (t) goToNumber(t, { silent: true });
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+      if (e.key === 'ArrowRight' || e.key === 'j') go(1);
+      if (e.key === 'ArrowLeft' || e.key === 'k') go(-1);
+      if (e.key === 'g' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        const el = $('jumpN');
+        el.focus();
+        el.select();
+      }
+      if (e.key === ' ' || e.key === 'b') {
+        e.preventDefault();
+        const s = current();
+        if (s) toggleBrief(s.n);
+      }
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) copyList();
+    });
+
+    // Pointer swipe on the stage (works for touch + mouse).
+    // Left = next, right = previous. Use the dominant peak travel of the
+    // gesture (not the release point) with a moderate equal threshold so
+    // both directions actually commit.
+    // When the summary is long enough to scroll, touch-action:pan-y keeps
+    // vertical scrolling, and once the gesture locks to horizontal we freeze
+    // that scroll so the deck swipe can take over.
+    let drag = null;
+    const SWIPE_MIN = 48;
+    function summaryEl() {
+      return card.querySelector('.summary');
+    }
+    function freezeSummaryScroll(freeze) {
+      const sum = summaryEl();
+      if (!sum) return;
+      if (freeze) {
+        if (sum.dataset.scrollFrozen === '1') return;
+        sum.dataset.scrollFrozen = '1';
+        sum.dataset.prevOverflowY = sum.style.overflowY || '';
+        sum.dataset.prevTouchAction = sum.style.touchAction || '';
+        sum.style.overflowY = 'hidden';
+        sum.style.touchAction = 'none';
+      } else if (sum.dataset.scrollFrozen === '1') {
+        sum.style.overflowY = sum.dataset.prevOverflowY || '';
+        sum.style.touchAction = sum.dataset.prevTouchAction || '';
+        delete sum.dataset.scrollFrozen;
+        delete sum.dataset.prevOverflowY;
+        delete sum.dataset.prevTouchAction;
+      }
+    }
+    stage.addEventListener('pointerdown', (e) => {
+      if (e.target.closest('button, a, input, form')) return;
+      drag = {
+        id: e.pointerId, x: e.clientX, y: e.clientY,
+        moved: false, axis: null, maxRight: 0, maxLeft: 0
+      };
+      card.classList.add('dragging');
+      try { stage.setPointerCapture(e.pointerId); } catch (_) {}
+    }, true);
+    stage.addEventListener('pointermove', (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const dx = e.clientX - drag.x;
+      const dy = e.clientY - drag.y;
+      if (dx > drag.maxRight) drag.maxRight = dx;
+      if (-dx > drag.maxLeft) drag.maxLeft = -dx;
+      if (!drag.axis) {
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+        drag.axis = Math.abs(dx) >= Math.abs(dy) ? 'x' : 'y';
+        if (drag.axis === 'x') freezeSummaryScroll(true);
+      }
+      if (drag.axis !== 'x') return;
+      drag.moved = true;
+      e.preventDefault();
+      card.style.transform = `translateX(${dx}px)`;
+      card.style.opacity = String(Math.max(0.35, 1 - Math.abs(dx) / 280));
+    }, { passive: false, capture: true });
+    function endDrag(e) {
+      if (!drag || e.pointerId !== drag.id) return;
+      const maxR = drag.maxRight;
+      const maxL = drag.maxLeft;
+      const moved = drag.moved;
+      drag = null;
+      freezeSummaryScroll(false);
+      card.classList.remove('dragging');
+      if (!moved) {
+        card.style.transform = 'translateX(0)';
+        card.style.opacity = '1';
+        return;
+      }
+      // Dominant direction by peak distance; same threshold both ways.
+      if (maxR >= SWIPE_MIN && maxR >= maxL) {
+        go(-1); // right → previous
+        return;
+      }
+      if (maxL >= SWIPE_MIN && maxL > maxR) {
+        go(1); // left → next
+        return;
+      }
+      card.style.transform = 'translateX(0)';
+      card.style.opacity = '1';
+    }
+    stage.addEventListener('pointerup', endDrag, true);
+    stage.addEventListener('pointercancel', endDrag, true);
+    // iOS: native scroll on .summary can ignore pointer preventDefault unless
+    // touchmove is non-passive once the gesture is locked horizontal.
+    stage.addEventListener('touchmove', (e) => {
+      if (!drag || drag.axis !== 'x') return;
+      e.preventDefault();
+    }, { passive: false, capture: true });
+
+
+    function boot(data) {
+      if (!data || !data.stories || !data.stories.length) throw new Error('empty stories');
+      state.stories = data.stories;
+      state.i = 0;
+      if (data.date) $('brand').textContent = 'Headlines deck · ' + String(data.date).replace(/^\d{4}-(\d{2})-(\d{2})$/, (_,m,d) => {
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        return months[Number(m)-1] + ' ' + Number(d);
+      });
+      if (data.title) $('hint').textContent = data.title + ' · swipe or Go #';
+      if (data.note) $('selectedList').textContent = data.note;
+      const jumpTarget = parseJumpTarget();
+      if (jumpTarget) {
+        const idx = indexForNumber(jumpTarget);
+        if (idx >= 0) state.i = idx;
+      }
+      paintCard();
+    }
+
+
+    // --- Day switcher: base-relative (works at / on Netlify and /<repo>/ on GitHub Pages) ---
+    // siteBase(): site root path ending in '/', derived from location (strips /d/YYYY-MM-DD/...).
+    function siteBase() {
+      let p = location.pathname || '/';
+      const m = p.match(/^(.*\/)d\/\d{4}-\d{2}-\d{2}(\/.*)?$/);
+      if (m) return m[1];
+      return p.replace(/[^\/]*$/, '') || '/';
+    }
+    function siteUrl(rel) {
+      return siteBase() + String(rel || '').replace(/^\.?\//, '');
+    }
+
+    function formatDayLabel(iso, isLatest) {
+      const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (!m) return iso || '';
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const short = months[Number(m[2]) - 1] + ' ' + Number(m[3]);
+      return isLatest ? ('Today · ' + short) : short;
+    }
+
+    function detectCurrentDayDate() {
+      if (INLINE_DATA && INLINE_DATA.date) return String(INLINE_DATA.date);
+      const m = location.pathname.match(/\/d\/(\d{4}-\d{2}-\d{2})\//);
+      return m ? m[1] : '';
+    }
+
+    async function initDaySwitcher() {
+      const sel = document.getElementById('daySelect');
+      if (!sel) return;
+      let days = [];
+      try {
+        const res = await fetch(siteUrl('days.json'), { cache: 'no-store' });
+        if (res.ok) days = await res.json();
+      } catch (_) {}
+      if (!Array.isArray(days) || !days.length) {
+        const d = detectCurrentDayDate();
+        if (d) {
+          days = [{ date: d, label: formatDayLabel(d, true), path: './', latest: true }];
+        } else {
+          sel.closest('.day-row')?.setAttribute('hidden', '');
+          return;
+        }
+      }
+      const current = detectCurrentDayDate();
+      sel.innerHTML = '';
+      days.forEach((entry, i) => {
+        const opt = document.createElement('option');
+        const isLatest = !!(entry.latest || i === 0);
+        // days.json paths are relative to the site base ('./' or 'd/DATE/'); legacy '/'-rooted ones also OK.
+        opt.value = siteUrl(entry.path || (isLatest ? './' : ('d/' + entry.date + '/')));
+        opt.textContent = entry.label || formatDayLabel(entry.date, isLatest);
+        opt.dataset.date = entry.date || '';
+        if (entry.date && entry.date === current) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      if (![...sel.options].some(o => o.selected) && sel.options.length) {
+        sel.options[0].selected = true;
+      }
+      sel.addEventListener('change', () => {
+        const path = sel.value || siteBase();
+        // Navigate to day's index; drop hash so jump deep-links don't carry over.
+        location.href = path;
+      });
+    }
+    initDaySwitcher();
+
+    try { boot(INLINE_DATA); }
+    catch (err) {
+      $('hint').textContent = String(err.message || err);
+    }
+  </script>
+</body>
+</html>
