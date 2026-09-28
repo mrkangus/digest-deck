@@ -320,6 +320,11 @@
     }
     #sectionSelect:focus { outline: 2px solid var(--accent-soft); outline-offset: 1px; }
 
+
+    /* Card: no section label — author row left-aligned, full width */
+    .section-row { justify-content: flex-start; }
+    .section-row .author { flex: 1 1 auto; min-width: 0; max-width: 100%; text-align: left; }
+
   </style>
 </head>
 <body>
@@ -451,19 +456,14 @@
       source.className = 'source';
       source.textContent = s.source || 'Source';
       srcBlock.appendChild(source);
-      if (s.section || s.author) {
+      if (s.author) {
+        // Section label removed from cards (see top-bar section dropdown); author only.
         const row = document.createElement('div');
         row.className = 'section-row';
-        const sec = document.createElement('div');
-        sec.className = 'section-line';
-        sec.textContent = s.section || '';
-        row.appendChild(sec);
-        if (s.author) {
-          const au = document.createElement('div');
-          au.className = 'author';
-          au.textContent = s.author;
-          row.appendChild(au);
-        }
+        const au = document.createElement('div');
+        au.className = 'author';
+        au.textContent = s.author;
+        row.appendChild(au);
         srcBlock.appendChild(row);
       }
       top.appendChild(srcBlock);
