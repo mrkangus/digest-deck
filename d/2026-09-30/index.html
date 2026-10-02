@@ -325,6 +325,20 @@
     .section-row { justify-content: flex-start; }
     .section-row .author { flex: 1 1 auto; min-width: 0; max-width: 100%; text-align: left; }
 
+
+    /* Globe: author in opinion-tab / meta pill row */
+    .pill.author-pill {
+      text-transform: none;
+      letter-spacing: 0.01em;
+      font-weight: 650;
+      background: rgba(15, 23, 42, 0.06);
+      color: var(--soft);
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
   </style>
 </head>
 <body>
@@ -520,7 +534,9 @@
       source.className = 'source';
       source.textContent = s.source || 'Source';
       srcBlock.appendChild(source);
-      if (s.author) {
+      const isGlobe = /globe/i.test(String(s.source || ''));
+      // Non-Globe: keep author under source when present. Globe authors render in the opinion-tab meta row.
+      if (s.author && !isGlobe) {
         // Section label removed from cards (see top-bar section dropdown); author only.
         const row = document.createElement('div');
         row.className = 'section-row';
@@ -554,6 +570,13 @@
         const p = document.createElement('span');
         p.className = 'pill opinion';
         p.textContent = 'Opinion';
+        meta.appendChild(p);
+      }
+      // Globe synopsis cards: author sits in the opinion-tab area (beside Opinion, or in that spot if not opinion).
+      if (isGlobe && s.author) {
+        const p = document.createElement('span');
+        p.className = 'pill author-pill';
+        p.textContent = s.author;
         meta.appendChild(p);
       }
       if (s.featured) {
