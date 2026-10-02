@@ -222,6 +222,31 @@
       font-weight: 700;
     }
     .selected-list { max-height: 64px; overflow: auto; font-size: 12px; color: var(--muted); line-height: 1.35; }
+
+    .selected-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .selected-row .selected-list { flex: 1; min-width: 0; }
+    .selected-row .clear {
+      flex: 0 0 auto;
+      padding: 8px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 650;
+      border: 0;
+      cursor: pointer;
+      background: rgba(15, 23, 42, 0.06);
+      color: var(--soft);
+      white-space: nowrap;
+      min-height: 36px;
+    }
+    .selected-row .clear:active { transform: scale(0.97); }
+    .selected-row .clear:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
     .toast {
       position: fixed; left: 50%; bottom: calc(28px + var(--safe-b));
       transform: translateX(-50%) translateY(16px);
@@ -369,7 +394,7 @@
       <article class="card" id="card"></article>
     </div>
 
-    <div class="hint" id="hint">Swipe ← / → · Go # · Brief me · Copy list</div>
+    <div class="hint" id="hint">Swipe ← / → · Go # · Brief me · Copy list · Clear</div>
 
     <footer class="dock">
       <div class="dock-row">
@@ -377,7 +402,10 @@
         <button type="button" class="primary" id="btnCopy">Copy brief list</button>
         <button type="button" class="ghost" id="btnNext" aria-label="Next">→</button>
       </div>
-      <div class="selected-list" id="selectedList">No stories selected for briefing yet.</div>
+      <div class="selected-row">
+        <div class="selected-list" id="selectedList">No stories selected for briefing yet.</div>
+        <button type="button" class="clear" id="btnClear" aria-label="Clear brief list" title="Clear brief selections">Clear</button>
+      </div>
     </footer>
   </div>
   <div class="toast" id="toast"></div>
@@ -475,6 +503,8 @@
       $('selectedList').textContent = nums.length
         ? `Selected: ${nums.join(', ')} — paste into News Headlines chat for detailed briefs.`
         : 'No stories selected for briefing yet.';
+      const clearBtn = $('btnClear');
+      if (clearBtn) clearBtn.disabled = !nums.length;
       const brief = card.querySelector('[data-brief]');
       const s = current();
       if (brief && s) {
@@ -724,9 +754,21 @@
       }
     }
 
+    function clearBriefList() {
+      if (!state.selected.size) {
+        toast('Nothing selected');
+        return;
+      }
+      state.selected = new Set();
+      renderSelected();
+      if (typeof savePersistedState === 'function') savePersistedState();
+      toast('Cleared brief list');
+    }
+
     $('btnNext').onclick = () => go(1);
     $('btnPrev').onclick = () => go(-1);
     $('btnCopy').onclick = copyList;
+    if ($('btnClear')) $('btnClear').onclick = clearBriefList;
     $('jumpForm').addEventListener('submit', (e) => {
       e.preventDefault();
       const v = $('jumpN').value.trim();
