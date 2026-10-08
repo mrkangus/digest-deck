@@ -986,9 +986,18 @@
 
 
     // --- Section switcher: options built from the stories (contiguous source/section runs, digest order).
+    // Stories carrying a navGroup (e.g. the pinned "Coverage & consumer health" block) form ONE group
+    // regardless of source, labelled navLabel || NAV_LABELS[navGroup] || navGroup. Days without navGroup
+    // keep the plain source/section runs.
     // Choosing one jumps to that section's first story via goToNumber() (same as Go box / #N).
     const SECTION_SHORT = { 'The Globe and Mail': 'Globe', 'The Wall Street Journal': 'WSJ', 'Financial Times': 'FT' };
+    const NAV_LABELS = { 'Coverage & consumer health': 'Coverage & consumer' };
     const sectionNav = { built: false, groups: [], byIndex: [] };
+    function navGroupOf(s) { return String((s && s.navGroup) || '').trim(); }
+    function navLabelFor(s) {
+      const g = navGroupOf(s);
+      return String((s && s.navLabel) || '').trim() || NAV_LABELS[g] || g;
+    }
     function sectionLabelFor(s) {
       const sec = String((s && s.section) || '').trim();
       const src = String((s && s.source) || '').trim();
@@ -1011,9 +1020,11 @@
       const byIndex = [];
       let prevKey = null;
       state.stories.forEach((s, i) => {
-        const key = String((s && s.source) || '') + '\u0001' + String((s && s.section) || '');
+        const nav = navGroupOf(s);
+        const key = nav ? ('\u0002nav\u0001' + nav)
+          : (String((s && s.source) || '') + '\u0001' + String((s && s.section) || ''));
         if (key !== prevKey) {
-          groups.push({ label: sectionLabelFor(s), start: i, first: storyNumber(s, i), last: storyNumber(s, i) });
+          groups.push({ label: nav ? navLabelFor(s) : sectionLabelFor(s), start: i, first: storyNumber(s, i), last: storyNumber(s, i) });
           prevKey = key;
         }
         const g = groups[groups.length - 1];
