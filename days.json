@@ -1,21 +1,21 @@
 [
   {
-    "date": "2026-10-27",
-    "label": "Today \u00b7 Oct 27",
+    "date": "2026-10-28",
+    "label": "Today \u00b7 Oct 28",
     "path": "./",
-    "stories": 182,
+    "stories": 171,
     "latest": true
+  },
+  {
+    "date": "2026-10-27",
+    "label": "Oct 27",
+    "path": "d/2026-10-27/",
+    "stories": 182
   },
   {
     "date": "2026-10-26",
     "label": "Oct 26",
     "path": "d/2026-10-26/",
     "stories": 159
-  },
-  {
-    "date": "2026-10-25",
-    "label": "Oct 25",
-    "path": "d/2026-10-25/",
-    "stories": 108
   }
 ]
