@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f3f5f9" />
+  <title>Headlines deck</title>
+  <style>
+    :root {
+      --bg: #f3f5f9;
+      --bg-glow: #e8eef8;
+      --card: #ffffff;
+      --line: rgba(15, 23, 42, 0.10);
+      --text: #0f172a;
+      --soft: #334155;
+      --muted: #64748b;
+      --accent: #2563eb;
+      --accent-soft: #dbeafe;
+      --good: #dcfce7;
+      --good-text: #166534;
+      --shadow: 0 14px 40px rgba(15,23,42,0.12);
+      --radius: 26px;
+      --safe-b: env(safe-area-inset-bottom, 0px);
+      --safe-t: env(safe-area-inset-top, 0px);
+      --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow-x: hidden;
+      font-family: var(--font);
+      color: var(--text);
+      background:
+        radial-gradient(900px 480px at 50% -8%, var(--bg-glow) 0%, transparent 55%),
+        var(--bg);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .app {
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto;
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: calc(10px + var(--safe-t)) 12px calc(12px + var(--safe-b));
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 2px 4px;
+    }
+    .brand {
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 650;
+    }
+    .progress-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+    .progress-label { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .progress-bar {
+      width: 112px; height: 4px; border-radius: 999px;
+      background: rgba(15,23,42,0.08); overflow: hidden;
+    }
+    .progress-bar i {
+      display: block; height: 100%; width: 0%;
+      background: var(--accent);
+      border-radius: 999px; transition: width .2s ease;
+    }
+    .stage {
+      flex: 0 0 auto;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      /* none: claim horizontal swipes both ways; browser edge-back won't steal them */
+      touch-action: none;
+      user-select: none;
+      overscroll-behavior-x: none;
+    }
+    .card {
+      width: 100%;
+      max-width: 420px;
+      height: min(78vh, 680px);
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 22px 20px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 0;
+      transition: transform 0.18s ease, opacity 0.18s ease;
+      will-change: transform;
+    }
+    .card.dragging { transition: none; }
+    .card-top {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
+    }
+    .source-block { min-width: 0; flex: 1; }
+    .source {
+      margin: 0;
+      font-size: clamp(18px, 5vw, 22px);
+      line-height: 1.1;
+      font-weight: 750;
+      letter-spacing: -0.02em;
+    }
+    .section-row {
+      margin-top: 4px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--muted);
+      min-width: 0;
+    }
+    .section-line {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .author {
+      flex: 0 1 auto;
+      text-align: right;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 48%;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .digest {
+      flex: 0 0 auto;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 6px 10px;
+      white-space: nowrap;
+    }
+    .headline {
+      margin: 4px 0 0;
+      font-size: clamp(20px, 5.4vw, 26px);
+      line-height: 1.18;
+      letter-spacing: -0.025em;
+      font-weight: 750;
+    }
+    .summary {
+      margin: 0;
+      font-size: clamp(15px, 3.8vw, 17px);
+      line-height: 1.5;
+      color: var(--soft);
+      /* vertical scroll only; horizontal stays free for deck swipe */
+      overflow-x: hidden;
+      overflow-y: auto;
+      touch-action: pan-y;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+      flex: 1;
+      min-height: 0;
+      padding-right: 2px;
+    }
+    .meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .pill {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 5px 9px; border-radius: 8px;
+      background: rgba(15,23,42,0.05); color: var(--muted);
+    }
+    .pill.opinion { background: #fff7ed; color: #c2410c; }
+    .pill.featured { background: var(--accent-soft); color: #1d4ed8; }
+    .pill.selected { background: var(--good); color: var(--good-text); }
+    .open {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 14px; font-weight: 650; padding: 2px 0;
+      color: var(--accent); text-decoration: none;
+    }
+    .actions {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 2px;
+    }
+    .actions button {
+      appearance: none; border: 0; cursor: pointer;
+      border-radius: 16px; padding: 14px 12px;
+      font-size: 15px; font-weight: 650; color: var(--text);
+      background: rgba(15,23,42,0.05);
+    }
+    .actions button.good { background: var(--good); color: var(--good-text); }
+    .actions button.good.on { outline: 2px solid #86efac; }
+    .actions button:active { transform: scale(0.98); }
+    .hint {
+      text-align: center; color: var(--muted); font-size: 12px; min-height: 16px;
+      padding: 0 8px;
+    }
+    .dock {
+      display: grid; gap: 8px;
+      padding: 10px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 8px 24px rgba(15,23,42,0.08);
+    }
+    .dock-row { display: flex; gap: 10px; align-items: stretch; }
+    .dock button { flex: 1; padding: 12px 10px; border-radius: 14px; font-size: 14px; font-weight: 650; border: 0; cursor: pointer; }
+    .dock .primary { background: var(--accent); color: #fff; }
+    .dock .ghost {
+      background: rgba(15,23,42,0.06); border: 1px solid var(--line);
+      color: var(--text); flex: 0 0 auto;
+      min-width: 72px; min-height: 56px;
+      padding: 14px 18px;
+      font-size: 28px; line-height: 1;
+      font-weight: 700;
+    }
+    .selected-list { max-height: 64px; overflow: auto; font-size: 12px; color: var(--muted); line-height: 1.35; }
+
+    .selected-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .selected-row .selected-list { flex: 1; min-width: 0; }
+    .selected-row .clear {
+      flex: 0 0 auto;
+      padding: 8px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 650;
+      border: 0;
+      cursor: pointer;
+      background: rgba(15, 23, 42, 0.06);
+      color: var(--soft);
+      white-space: nowrap;
+      min-height: 36px;
+    }
+    .selected-row .clear:active { transform: scale(0.97); }
+    .selected-row .clear:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+    .toast {
+      position: fixed; left: 50%; bottom: calc(28px + var(--safe-b));
+      transform: translateX(-50%) translateY(16px);
+      background: #0f172a; color: #fff; border: 1px solid rgba(15,23,42,0.2);
+      padding: 10px 14px; border-radius: 12px; font-size: 13px;
+      max-width: min(90vw, 420px); text-align: center;
+      opacity: 0; pointer-events: none; transition: opacity .2s ease, transform .2s ease;
+      z-index: 20;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    .jump {
+      display: flex; align-items: center; gap: 6px;
+      margin-top: 2px;
+    }
+    .jump label {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+      text-transform: uppercase; color: var(--muted);
+    }
+    .jump input {
+      width: 52px; appearance: textfield;
+      border: 1px solid var(--line); border-radius: 10px;
+      padding: 5px 8px; font-size: 13px; font-weight: 650;
+      font-variant-numeric: tabular-nums; text-align: center;
+      background: #fff; color: var(--text);
+    }
+    .jump input::-webkit-outer-spin-button,
+    .jump input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .jump button {
+      appearance: none; border: 0; cursor: pointer;
+      border-radius: 10px; padding: 5px 10px;
+      font-size: 12px; font-weight: 700;
+      background: var(--accent-soft); color: #1d4ed8;
+    }
+    .jump button:active { transform: scale(0.97); }
+
+    /* Day switcher — compact, mobile-tappable, no swipe steal */
+    .header-left { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 4px; }
+    .day-row {
+      display: flex; align-items: center; gap: 6px;
+      touch-action: manipulation;
+    }
+    .day-row label {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+      text-transform: uppercase; color: var(--muted);
+      flex: 0 0 auto;
+    }
+    #daySelect {
+      appearance: none; -webkit-appearance: none;
+      border: 1px solid var(--line); border-radius: 10px;
+      padding: 8px 30px 8px 10px;
+      min-height: 40px; max-width: min(180px, 48vw);
+      font-size: 13px; font-weight: 650;
+      font-variant-numeric: tabular-nums;
+      background-color: #fff;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%2364748b' d='M1.4 1.2L6 5.6l4.6-4.4 1.2 1.3L6 8 0.2 2.5z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      background-size: 12px 8px;
+      color: var(--text);
+      touch-action: manipulation;
+      cursor: pointer;
+    }
+    #daySelect:focus { outline: 2px solid var(--accent-soft); outline-offset: 1px; }
+
+
+    /* Section switcher — full-width row in the top bar (wraps under Days / Go) */
+    header { flex-wrap: wrap; row-gap: 6px; }
+    .section-bar {
+      flex: 1 0 100%; min-width: 0;
+      display: flex; align-items: center; gap: 6px;
+      touch-action: manipulation;
+    }
+    .section-bar label {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+      text-transform: uppercase; color: var(--muted);
+      flex: 0 0 auto;
+    }
+    #sectionSelect {
+      appearance: none; -webkit-appearance: none;
+      flex: 1 1 auto; min-width: 0; width: 100%;
+      border: 1px solid var(--line); border-radius: 10px;
+      padding: 6px 28px 6px 10px;
+      min-height: 36px;
+      font-size: 13px; font-weight: 650;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      background-color: #fff;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%2364748b' d='M1.4 1.2L6 5.6l4.6-4.4 1.2 1.3L6 8 0.2 2.5z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      background-size: 12px 8px;
+      color: var(--text);
+      touch-action: manipulation;
+      cursor: pointer;
+    }
+    #sectionSelect:focus { outline: 2px solid var(--accent-soft); outline-offset: 1px; }
+
+
+    /* Card: no section label — author row left-aligned, full width */
+    .section-row { justify-content: flex-start; }
+    .section-row .author { flex: 1 1 auto; min-width: 0; max-width: 100%; text-align: left; }
+
+    /* Globe: author in opinion-tab / meta pill row */
+    .pill.author-pill {
+      text-transform: none;
+      letter-spacing: 0.01em;
+      font-weight: 650;
+      background: rgba(15, 23, 42, 0.06);
+      color: var(--soft);
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="header-left">
+        <div class="brand" id="brand">Headlines deck</div>
+        <div class="day-row">
+          <label for="daySelect">Days</label>
+          <select id="daySelect" aria-label="Choose day archive"></select>
+        </div>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-label" id="progressLabel">—</div>
+        <div class="progress-bar"><i id="progressFill"></i></div>
+        <form class="jump" id="jumpForm" autocomplete="off">
+          <label for="jumpN">Go</label>
+          <input id="jumpN" type="number" inputmode="numeric" min="1" step="1" placeholder="#" aria-label="Jump to story number" />
+          <button type="submit">Go</button>
+        </form>
+      </div>
+      <div class="section-bar">
+        <label for="sectionSelect">Section</label>
+        <select id="sectionSelect" aria-label="Jump to section"></select>
+      </div>
+    </header>
+
+    <div class="stage" id="stage" aria-label="Headline card">
+      <article class="card" id="card"></article>
+    </div>
+
+    <div class="hint" id="hint">Swipe ← / → · Go # · Brief me · Copy list · Clear</div>
+
+    <footer class="dock">
+      <div class="dock-row">
+        <button type="button" class="ghost" id="btnPrev" aria-label="Previous">←</button>
+        <button type="button" class="primary" id="btnCopy">Copy brief list</button>
+        <button type="button" class="ghost" id="btnNext" aria-label="Next">→</button>
+      </div>
+      <div class="selected-row">
+        <div class="selected-list" id="selectedList">No stories selected for briefing yet.</div>
+        <button type="button" class="clear" id="btnClear" aria-label="Clear brief list" title="Clear brief selections">Clear</button>
+      </div>
+    </footer>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const INLINE_DATA = {"date":"2026-11-06","title":"Morning headlines — Friday, Nov 6, 2026","note":"199 stories (62 pinned to Coverage & consumer health). Reply with story numbers for detailed briefs.","stories":[{"n":1,"source":"The Globe and Mail","section":"Coverage & consumer health","author":"","headline":"Friday’s analyst upgrades and downgrades","url":"https://www.theglobeandmail.com/investing/markets/inside-the-market/article-fridays-analyst-upgrades-and-downgrades-325/","summary":"Friday's analyst roundup includes three coverage names. Canaccord's Luke Hannan cut Gildan to hold from buy (target US$41 from US$62) after the steep Q3 miss, guide cut and withdrawal of 2026–28 targets, saying shares look range-bound until the spring 2027 Investor Day. Stifel's Martin Landry trimmed Premium Brands to $102 from $105 (buy) after soft organic growth in foodservice and c-stores, with Scotia and Canaccord also cutting targets; average $108.92. RBC's Irene Nattel raised Saputo to $52 from $50 (outperform; average $47.33).","digestN":1,"opinion":false,"origSection":"Globe — Business & Investing","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"named","featured":"Globe"},{"n":2,"source":"The Globe and Mail","section":"Coverage & consumer health","author":"","headline":"Gildan shares plunge as clothing maker misses estimates, lowers full-year forecast","url":"https://www.theglobeandmail.com/business/article-gildan-results-estimates-full-year-forecast/","summary":"Gildan cut its 2026 outlook and withdrew its 2026–28 targets after weaker apparel demand hit Q3. Continuing-ops sales were US$1.47B vs guidance of about US$1.65B, and adjusted EPS was US$1.54 vs US$1.57 expected. It now guides full-year revenue to a minimum of about US$5.4B (from a US$6B low end) and adjusted EPS to a minimum of US$3.70 (from US$4.65). CEO Glenn Chamandy blamed subdued wholesale and retail demand; the stock shed nearly one-fifth of its TSX market value.","digestN":2,"opinion":false,"origSection":"Globe — Business & Investing","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"named","featured":"Globe"},{"n":3,"source":"The Wall Street Journal","section":"Coverage & consumer health","author":"","headline":"Zipline Valuation Soars as Drone Startup Raises Funds, Expands Walmart Deal - WSJ","url":"https://www.wsj.com/logistics-report/zipline-valuation-soars-as-drone-startup-raises-funds-expands-walmart-deal-48676792","summary":"Zipline raised US$1.5B, more than doubling its valuation to US$21.5B, as Walmart expanded their drone-delivery partnership with plans for 300 additional sites under a national multiyear deal. Uber Eats already uses Zipline for takeout, grocery and retail; CEO Keller Cliffton says several customers each want roughly a million deliveries a day.","digestN":3,"opinion":false,"origSection":"WSJ — Business","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"named","featured":"WSJ"},{"n":4,"source":"The Wall Street Journal","section":"Coverage & consumer health","author":"","headline":"Canada Goose Loss Widens as Higher Costs Weigh Down Results - WSJ","url":"https://www.wsj.com/business/retail/canada-goose-loss-widens-as-higher-costs-weigh-down-results-58010cab","summary":"Canada Goose posted a wider Q2 loss of C$26.3M (C$0.27/share) vs C$17.4M (C$0.16) a year earlier as marketing and retail expansion costs ramped ahead of the holidays. (Partial: based on the article's opening paragraphs only.)","digestN":4,"opinion":false,"origSection":"WSJ — Business","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"named"},{"n":5,"source":"CBC","section":"Coverage & consumer health","author":"","headline":"Maple Leaf Foods plans to raise prices again early next year, CEO says in earnings call","url":"https://www.cbc.ca/news/business/maple-leaf-price-increase-9.7410372","summary":"Maple Leaf Foods plans another price hike in Q1 after fuel and poultry costs outran expectations, CEO Curtis Frank told the Q3 call; customers have not been told the details yet. Live poultry is up about 8% year over year after a short-notice ~3% Q4 farmer hike, and fuel surcharges rose 17% since Q2. Grocery prices are up 33% since Sept 2020; Frank said earlier 2026 increases were not enough as inflation accelerates.","digestN":5,"opinion":false,"origSection":"CBC","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"named","featured":"CBC"},{"n":6,"source":"Retail Insider","section":"Coverage & consumer health","author":"","headline":"Canada Goose Faces Deeper Comparable Sales Declines as Winter Shoppers Delay Purchases","url":"https://retail-insider.com/retail-insider/2026/11/canada-goose-faces-deeper-comparable-sales-declines-as-winter-shoppers-delay-purchases/","summary":"Canada Goose's global DTC comparable sales fell 7.5% in the quarter ended Sept 27 (after −3.2% prior), with October still negative as warmer weather delayed winter buys. Revenue still rose 5.9% to $274M; Canada comps were flat, North America −4%, Asia Pac revenue +21% but comps −4%, and EMEA comps −27%. CFO Neil Bowden said shoppers are buying closer to need; temporary logistics issues also hit some regions.","digestN":6,"opinion":false,"navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","published":"2026-11-06T04:34:48+00:00","tradeExcerpt":"Canada Goose reported a 7.5% decline in comparable sales during its second fiscal quarter, with weakness continuing into October as warmer weather delayed winter apparel purchases. Canadian sales held steady while gross margins improved.","origSection":"Trade journals — Cdn retail & consumer","pinTier":"named","featured":"Retail Insider"},{"n":7,"source":"Canadian Grocer","section":"Coverage & consumer health","author":"","headline":"Longo’s sets opening date for King City store","url":"https://canadiangrocer.com/longos-sets-opening-date-king-city-store","summary":"Longo's will open its 45th supermarket on Nov 12 at King's Ridge Marketplace in King City, Ont. (1700 King Rd.), a 50,000-sq-ft former Coppa's Fresh Market. The Empire Company banner, marking its 70th anniversary, flagged the opening in May. (Partial: based on the article's opening paragraphs only.)","digestN":7,"opinion":false,"navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","published":"2026-11-05T21:18:49+00:00","tradeExcerpt":"Grocer to open 45th location","origSection":"Trade journals — Cdn retail & consumer","pinTier":"named"},{"n":8,"source":"Canadian Grocer","section":"Coverage & consumer health","author":"","headline":"Costco reports sales of $24.5B for October","url":"https://canadiangrocer.com/costco-reports-sales-245b-october","summary":"Costco reported October net sales of US$24.5B, up 12.5% from US$21.75B a year earlier (four weeks ended Nov 1). Comparable sales rose 4.9% in Canada, 12.6% in the US and 9.4% other international. Year-to-date nine-week sales were US$54.52B, up 12.8%. (Partial: based on the article's opening paragraphs only.)","digestN":8,"opinion":false,"navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","published":"2026-11-05T21:03:36+00:00","tradeExcerpt":"Canadian sales rise 4.9%","origSection":"Trade journals — Cdn retail & consumer","pinTier":"named"},{"n":9,"source":"Strategy","section":"Coverage & consumer health","author":"","headline":"Canadian Tire invests $200 million in new Mark’s format","url":"https://strategyonline.ca/2026/11/05/canadian-tire-marks-investment/","summary":"Canadian Tire is investing $200M in its Mark's banner through 2028, expanding a new store format it says is attracting new customers and driving growth. (Partial: based on the article's opening paragraphs only.)","digestN":9,"opinion":false,"navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","published":"2026-11-05T14:11:36+00:00","tradeExcerpt":"Canadian Tire Corporation is investing $200 million in its Mark’s banner through 2028, expanding on a new store format that ... Read More","origSection":"Trade journals — Cdn retail & consumer","pinTier":"named","featured":"Strategy"},{"n":10,"source":"Bloomberg","section":"Coverage & consumer health","author":"","headline":"US Investigating Cardboard Makers Over Pricing Practices","url":"https://www.bloomberg.com/news/articles/2026-11-05/us-justice-department-probes-packaging-companies-over-box-prices","summary":"","digestN":10,"opinion":false,"origSection":"Bloomberg","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"sector"},{"n":11,"source":"Reuters","section":"Coverage & consumer health","author":"","headline":"Kimberly-Clark's China diaper woes linger as it stands by annual outlook","url":"https://www.reuters.com/business/healthcare-pharmaceuticals/kimberly-clarks-china-diaper-woes-linger-it-stands-by-annual-outlook-2026-11-05/","summary":"Kimberly-Clark reiterated its annual sales and adjusted-EPS outlook despite China diaper disruption: false formamide claims (cleared by Chinese authorities in October) cut organic sales about 100bp for the year and 270bp in Q3. Organic sales fell 1.3%; North America volumes +2%, international personal care −4.6%. Adjusted gross margin was 35.5% (−130bp) on lower prices and Middle East-linked inflation.","digestN":11,"opinion":false,"origSection":"Reuters","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"sector","featured":"Reuters"},{"n":12,"source":"The Globe and Mail","section":"Coverage & consumer health","author":"","headline":"Turning 100 in a trade war, a Quebec aluminum town makes a wish","url":"https://www.theglobeandmail.com/canada/article-turning-100-in-a-trade-war-a-quebec-aluminum-town-makes-a-wish/","summary":"Arvida, Que., the Rio Tinto aluminum company town founded by Alcoa's Arthur Vining Davis in 1926, marks its centenary under 50% US tariffs on Canadian aluminum. Locals fear Trump's push to onshore smelting; Ottawa earmarked nearly $200M for Quebec aluminum projects last week framed as Canadian sovereignty, and heritage advocates are renewing a UNESCO bid.","digestN":12,"opinion":false,"origSection":"Globe — Business & Investing","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"theme"},{"n":13,"source":"The Globe and Mail","section":"Coverage & consumer health","author":"","headline":"Stellantis extends shutdown of Windsor, Ont., plant as it weighs ‘evolving market conditions’","url":"https://www.theglobeandmail.com/business/article-stellantis-extends-shutdown-of-windsor-ont-plant/","summary":"Stellantis extended the Windsor, Ont., assembly-plant shutdown (Chrysler minivans, Dodge Charger; about 6,000 Unifor workers) for a sixth week since mid-September, citing demand and tariffs. Trump's 25% levy on non-US content in Canadian-built cars remains, with a threatened rise to 50% including parts on Jan 1. GM and Stellantis have already idled or shifted other Ontario capacity.","digestN":13,"opinion":false,"origSection":"Globe — Business & Investing","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"theme","featured":"Globe"},{"n":14,"source":"The Globe and Mail","section":"Coverage & consumer health","author":"","headline":"Canadian auto sector sees new hope from U.S. Democrats’ midterm victory","url":"https://www.theglobeandmail.com/business/article-canadian-auto-sector-sees-new-hope-from-us-democrat-win/","summary":"Democrats' midterm sweep raises Canadian auto hopes for tariff relief and a possible revival of EV incentives Trump ended (CAFE rules, the US$7,500 Clean Vehicle Rebate, battery credits). US EV sales fell 45% in Q4 2025 after subsidy cuts; several Canadian EV projects (Honda, Ford, VW) were cancelled or delayed. Experts caution Trump retains veto power even with Democratic majorities.","digestN":14,"opinion":false,"origSection":"Globe — Business & Investing","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"theme"},{"n":15,"source":"The Globe and Mail","section":"Coverage & consumer health","author":"","headline":"Wendy’s rejects Trian-led buyout offer, adopts ‘poison pill’ plan","url":"https://www.theglobeandmail.com/business/article-wendys-rejects-trian-led-buyout-offer-adopts-poison-pill-plan/","summary":"Wendy's rejected Trian's US$1.4B take-private offer as substantially undervaluing the chain and adopted a poison-pill rights plan capping new stakes at 15% (Trian holds about 16.3%). Q3 US same-store sales fell 5.7% and adjusted revenue was US$435.6M (−1.9%); it is selling some restaurants and has an LOI for Meritage to take up to 163 units.","digestN":15,"opinion":false,"origSection":"Globe — Business & Investing","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"theme","featured":"Globe"},{"n":16,"source":"The Wall Street Journal","section":"Coverage & consumer health","author":"","headline":"Exclusive | Democrats Are Hatching a Plan to Reverse Trump’s Canada Tariffs - WSJ","url":"https://www.wsj.com/politics/elections/democrats-are-hatching-a-plan-to-reverse-trumps-canada-tariffs-a444cdc0","summary":"Sen. Ron Wyden says Democrats will target Trump's Canada tariffs first when they take Senate Finance in January, claiming 'overwhelming support' for repeal and saying he is already talking with colleagues about legislation. (Partial: based on the article's opening paragraphs only.)","digestN":16,"opinion":false,"origSection":"WSJ — Business","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"theme","featured":"WSJ"},{"n":17,"source":"The Wall Street Journal","section":"Coverage & consumer health","author":"","headline":"Sweetgreen Sees Milder Same-Store Sales Decline Following Rebound From Cyclospora Outbreak - WSJ","url":"https://www.wsj.com/business/earnings/sweetgreen-sees-milder-same-store-sales-decline-following-rebound-from-cyclospora-outbreak-aa77e43d","summary":"Sweetgreen now expects full-year same-store sales down about 5.5% (prior −7% to −8%) after a Cyclospora rebound. Q3 loss narrowed to US$30.7M (26c); revenue rose 2.1% to US$176M; comps −6.4% on −4.9% traffic. CEO Jonathan Neman said October comps turned positive on transactions; about 10 net new openings planned.","digestN":17,"opinion":false,"origSection":"WSJ — Business","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"theme"},{"n":18,"source":"The Wall Street Journal","section":"Coverage & consumer health","author":"","headline":"Monster Beverage Profit Rises as International Sales Jump - WSJ","url":"https://www.wsj.com/business/earnings/monster-beverage-profit-rises-as-international-sales-jump-ac9a1685","summary":"Monster Beverage Q3 net income rose to US$568.4M (29c) from US$524.5M (27c); sales jumped 17% to US$2.56B on a 28% international gain (Latin America +49%, led by Brazil), beating the US$2.49B Street view. (Partial: based on the article's opening paragraphs only.)","digestN":18,"opinion":false,"origSection":"WSJ — Business","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"theme"},{"n":19,"source":"The Wall Street Journal","section":"Coverage & consumer health","author":"","headline":"Wendy’s Rejects Trian’s $1.4 Billion Takeover Offer - WSJ","url":"https://www.wsj.com/business/deals/wendys-rejects-trians-1-4-billion-takeover-offer-984b1892","summary":"Wendy's board unanimously rejected Trian's unsolicited US$7.35/share cash bid as undervaluing the company and backing CEO Bob Wright's turnaround; it also adopted a 15% poison pill. Trian (about 16% stake) partnered with Flynn, BlueFive and Sixth Street. Q3 sales missed but earnings beat; traffic improved late in the quarter.","digestN":19,"opinion":false,"origSection":"WSJ — Business","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"theme"},{"n":20,"source":"The Wall Street Journal","section":"Coverage & consumer health","author":"","headline":"Mattel Cuts Outlook, Retains Top Exec to Help Steer Ship - WSJ","url":"https://www.wsj.com/business/earnings/mattel-cuts-outlook-retains-top-exec-to-help-steer-ship-1db60d98","summary":"Mattel cut 2026 sales growth guidance to 1–4% (from 3–6%) and adjusted EPS to US$1.05–1.20 (from US$1.27–1.39) after Q3 sales of US$1.81B missed US$1.84B. Hot Wheels held up while Barbie and Fisher-Price slipped. Steve Totzke returns as president/COO under new CEO Roger Lynch.","digestN":20,"opinion":false,"origSection":"WSJ — Business","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"theme"},{"n":21,"source":"The Wall Street Journal","section":"Coverage & consumer health","author":"","headline":"Papa John’s Cuts Outlook Again as Quarterly Sales Sink - WSJ","url":"https://www.wsj.com/business/retail/papa-johns-cuts-outlook-again-as-quarterly-sales-sink-789ef18c","summary":"Papa John's cut full-year global system sales guidance to −5% (from −2% to −4%), with North America comps guided −8%. Q3 revenue fell 10% to US$454.8M; NA comps −8.3%, international −1.8%. CEO Todd Penegor stuck with the 'Unbox Better' turnaround; shares fell 7% premarket.","digestN":21,"opinion":false,"origSection":"WSJ — Business","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"theme"},{"n":22,"source":"Bloomberg","section":"Coverage & consumer health","author":"","headline":"Under Armour Sinks After Cut to Margin Forecast Hits Turnaround","url":"https://www.bloomberg.com/news/articles/2026-11-06/under-armour-sinks-after-cut-to-margin-forecast-hits-turnaround","summary":"Under Armour cut its FY gross-margin expansion guide by 50bp to about +220bp, citing higher freight and fuel costs and inventory management, sending shares lower and casting more doubt on the turnaround. (Partial: based on the article's opening paragraphs only.)","digestN":22,"opinion":false,"origSection":"Bloomberg","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"theme"},{"n":23,"source":"Bloomberg","section":"Coverage & consumer health","author":"","headline":"How PacSun Won Over Gen Z and Alpha Shoppers","url":"https://www.bloomberg.com/news/articles/2026-11-06/how-pacsun-won-over-gen-z-and-alpha-shoppers","summary":"","digestN":23,"opinion":false,"origSection":"Bloomberg","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"theme"},{"n":24,"source":"Bloomberg","section":"Coverage & consumer health","author":"","headline":"Sweetgreen Says Sales Picking Up Following Hit From Parasite","url":"https://www.bloomberg.com/news/articles/2026-11-05/sweetgreen-says-sales-picking-up-following-hit-from-cyclospora","summary":"","digestN":24,"opinion":false,"origSection":"Bloomberg","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"theme"},{"n":25,"source":"Bloomberg","section":"Coverage & consumer health","author":"","headline":"Papa John's Trims Outlook on Competition, Cautious Diners","url":"https://www.bloomberg.com/news/articles/2026-11-05/papa-john-s-trims-outlook-again-on-competition-cautious-diners","summary":"","digestN":25,"opinion":false,"origSection":"Bloomberg","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"theme"},{"n":26,"source":"Bloomberg","section":"Coverage & consumer health","author":"","headline":"Celsius Revenue Hits Record as Alani Nu Powers Sales Boom","url":"https://www.bloomberg.com/news/articles/2026-11-05/celsius-turns-to-alani-nu-for-growth-as-namesake-brand-slides","summary":"","digestN":26,"opinion":false,"origSection":"Bloomberg","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"theme"},{"n":27,"source":"Bloomberg","section":"Coverage & consumer health","author":"","headline":"Wonder Restaurant App Files Confidentially to Go Public","url":"https://www.bloomberg.com/news/articles/2026-11-05/wonder-restaurant-app-files-confidentially-to-go-public","summary":"","digestN":27,"opinion":false,"origSection":"Bloomberg","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"theme"},{"n":28,"source":"Bloomberg","section":"Coverage & consumer health","author":"","headline":"Six Flags Rallies as Sales Beat, Active Pass Holders Rise","url":"https://www.bloomberg.com/news/articles/2026-11-05/six-flags-shares-rally-as-sales-beat-active-pass-holders-rise","summary":"","digestN":28,"opinion":false,"origSection":"Bloomberg","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"theme"},{"n":29,"source":"Bloomberg","section":"Coverage & consumer health","author":"","headline":"Rogaine Rides GLP-1 Wave With 30% Sales Surge This Year","url":"https://www.bloomberg.com/news/articles/2026-11-05/rogaine-rides-glp-1-wave-with-30-sales-surge-this-year","summary":"Business of Fashion says Rogaine is seeing a roughly 30% sales surge this year as more people on GLP-1 weight-loss drugs experience hair loss and turn to the decades-old remedy—an unexpected 'Ozempic effect' for the brand. (Partial: based on the article's opening paragraphs only.)","digestN":29,"opinion":false,"origSection":"Bloomberg","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"theme"},{"n":30,"source":"Bloomberg","section":"Coverage & consumer health","author":"","headline":"Starbucks' Plant-Based Meat Was Always an Impossible Sell","url":"https://www.bloomberg.com/opinion/articles/2026-11-05/starbucks-plant-based-meat-was-always-an-impossible-sell","summary":"","digestN":30,"opinion":true,"origSection":"Bloomberg","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"theme"},{"n":31,"source":"FT","section":"Coverage & consumer health","author":"","headline":"Donald Trump has taught the world that tariffs are useless","url":"https://www.ft.com/content/aab95234-0b9a-4b95-b1e5-d932669076d5","summary":"","digestN":31,"opinion":true,"origSection":"FT - Companies & Markets - Opinion","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"theme"},{"n":32,"source":"Reuters","section":"Coverage & consumer health","author":"","headline":"Mattel cuts annual forecasts as challenges pile up for new CEO","url":"https://www.reuters.com/business/retail-consumer/mattel-cuts-annual-forecasts-new-ceo-takes-charge-2026-11-05/","summary":"Mattel cut 2026 sales growth to 1–4% (from 3–6%) and adjusted EPS to US$1.05–1.20 (from US$1.27–1.39) as holiday demand softens; Q3 sales US$1.81B missed US$1.84B though adjusted EPS US$1.30 beat. New CEO Roger Lynch named Steve Totzke COO; activists have urged exploring a sale. Shares fell about 6% after hours.","digestN":32,"opinion":false,"origSection":"Reuters","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"theme"},{"n":33,"source":"Reuters","section":"Coverage & consumer health","author":"","headline":"Unilever to sell Myanmar joint venture stake, deal expected to close in 2027","url":"https://www.reuters.com/business/retail-consumer/unilever-sell-myanmar-joint-venture-stake-deal-expected-close-2027-2026-11-05/","summary":"Unilever will sell its stake in Unilever EAC Myanmar to Centig (an affiliate of JV partner EAC); completion is expected in 2027 subject to approvals, with terms undisclosed. Unilever entered Myanmar in 2010 and formed the JV in 2017 amid a civil-war backdrop. (Partial: based on the article's opening paragraphs only.)","digestN":33,"opinion":false,"origSection":"Reuters","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"theme"},{"n":34,"source":"Reuters","section":"Coverage & consumer health","author":"","headline":"Ralph Lauren raises outlook but shares slide as investors seek faster growth","url":"https://www.reuters.com/business/retail-consumer/ralph-lauren-raises-annual-revenue-forecast-2026-11-05/","summary":"Ralph Lauren raised FY2027 revenue growth guidance to about 6–7% (from 5–6%) but guided Q3 growth of only 3–4% (vs about 4.2% expected) on wholesale timing and fewer off-price sales, sending shares down about 4%. North America sales rose 6% in Q2 and China +35%; Europe traffic remains a watch item.","digestN":34,"opinion":false,"origSection":"Reuters","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"theme"},{"n":35,"source":"Reuters","section":"Coverage & consumer health","author":"","headline":"Higher costs offset Domino's growth for India's Jubilant FoodWorks; profit flat","url":"https://www.reuters.com/world/india/higher-costs-offset-dominos-growth-indias-jubilant-foodworks-profit-flat-2026-11-06/","summary":"Jubilant FoodWorks (Domino's India) Q2 continuing-ops profit was largely flat at ₹1.14B as expenses rose 12.9% on fuel, wages and dairy/chicken costs (about 200bp inflation hit). Revenue +12% to ₹26.08B; Domino's India LFL +4.1%, Popeyes LFL +53%. (Partial: based on the article's opening paragraphs only.)","digestN":35,"opinion":false,"origSection":"Reuters","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"theme"},{"n":36,"source":"CBC","section":"Coverage & consumer health","author":"","headline":"How will a resounding U.S. political shift impact the cross-border auto industry?","url":"https://www.cbc.ca/news/canada/windsor/america-canada-democratic-midterms-auto-industry-impact-9.7410608","summary":"CBC talks to Windsor autoworkers and Unifor's John D'Agnolo after the Democratic midterm wave: workers hope tariffs that forced Stellantis shutdowns will ease, noting Michigan races swung partly on trade pain. Industry voices say the sector is breathing easier, though change will not be overnight and Trump retains veto power.","digestN":36,"opinion":false,"origSection":"CBC","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"theme"},{"n":37,"source":"Retail Insider","section":"Coverage & consumer health","author":"","headline":"Cineplex reports record $440.2M quarterly revenue as adjusted EBITDA more than doubles","url":"https://retail-insider.com/retail-insider/2026/11/cineplex-reports-record-440-2m-quarterly-revenue-as-adjusted-ebitda-more-than-doubles/","summary":"Cineplex posted record Q3 revenue of $440.2M (+26.2%) and adjusted EBITDAaL of $70.7M (more than double), with 14.8M guests (+23.1%) and record box office of $215.7M. BOPP hit $14.54 and CPP $9.99; FCF jumped 241% to $52.9M as leverage moved into the target range. A strategic review that could include a sale is underway.","digestN":37,"opinion":false,"navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","published":"2026-11-06T12:01:54+00:00","tradeExcerpt":"Cineplex posted record third-quarter revenue and box office sales in 2026, while reporting stronger cash flow and launching a strategic review that includes a potential sale of the company.","origSection":"Trade journals — Cdn retail & consumer","pinTier":"theme"},{"n":38,"source":"Retail Insider","section":"Coverage & consumer health","author":"","headline":"Sephora to Reach 150 Canadian Stores as Prestige Beauty Competition Intensifies","url":"https://retail-insider.com/retail-insider/2026/11/sephora-to-reach-150-canadian-stores-as-prestige-beauty-competition-intensifies/","summary":"Sephora will open its 150th Canadian store Nov 13 at Burloak in Oakville, after Stock Yards Village and a first small-format Kitsilano shop. Expansion into neighbourhood centres comes as Shoppers Drug Mart deepens luxury beauty and Hudson's Bay's exit removes a major channel.","digestN":38,"opinion":false,"navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","published":"2026-11-06T11:51:00+00:00","tradeExcerpt":"Sephora will open its 150th Canadian store in Oakville on November 13 as it expands into neighbourhood retail, adds luxury skincare brands and faces growing competition from Shoppers Drug Mart.","origSection":"Trade journals — Cdn retail & consumer","pinTier":"theme"},{"n":39,"source":"CCentral","section":"Coverage & consumer health","author":"","headline":"Electrolit pairs with Canadian freestyle skier to lift cold vault sales","url":"https://ccentral.ca/electrolit-pairs-canadian-freestyle-skier-lift-cold-vault-sales","summary":"Electrolit is running a Peak Hydration winter campaign through early January 2027 with freestyle skier Janelle Yip across c-stores including Circle K/Couche-Tard, 7-Eleven, Shell and Petro-Canada, aiming to keep electrolyte drinks moving in cold weather via displays and a North Face gift-card sweepstakes.","digestN":39,"opinion":false,"navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","published":"2026-11-06T03:35:56+00:00","tradeExcerpt":"New retail campaign targets winter partiers and sports fans with professional skier Janelle Yip and gear giveaways across major c-store chains.","origSection":"Trade journals — Cdn retail & consumer","pinTier":"theme"},{"n":40,"source":"Canadian Grocer","section":"Coverage & consumer health","author":"","headline":"Four family-run grocers share their secrets to lasting growth","url":"https://canadiangrocer.com/four-family-run-grocers-share-their-secrets-lasting-growth","summary":"Canadian Grocer profiles four family-run grocers—including Country Grocer (11 BC Island stores) and Italian Centre Shop (Alberta)—on how day-to-day owner involvement, local sourcing and community roots sustain growth against national chains.","digestN":40,"opinion":false,"navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","published":"2026-11-06T00:00:39+00:00","tradeExcerpt":"Country Grocer, Italian Centre Shop, Mike Dean Local Grocer and Masstown Market grow across generations","origSection":"Trade journals — Cdn retail & consumer","pinTier":"theme"},{"n":41,"source":"CCentral","section":"Coverage & consumer health","author":"","headline":"Proxi adds parcel pickup to drive foot traffic across Eastern Canada","url":"https://ccentral.ca/proxi-adds-parcel-pickup-drive-foot-traffic-across-eastern-canada","summary":"Harnois Energies is adding Penguin Pickup parcel pickup/drop-off at more than 100 Proxi c-stores across Eastern Canada with Purolator, aiming to turn online delivery errands into coffee and grab-and-go trips.","digestN":41,"opinion":false,"navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","published":"2026-11-05T23:30:22+00:00","tradeExcerpt":"Harnois Energies partners with Penguin Pickup and Purolator to turn online delivery errands into potential in-store retail sales at more than 100 locations.","origSection":"Trade journals — Cdn retail & consumer","pinTier":"theme"},{"n":42,"source":"Restaurants Canada","section":"Coverage & consumer health","author":"","headline":"Restaurants Canada sees opportunities in federal budget measures to support investment and economic growth","url":"https://www.restaurantscanada.org/restaurants-canada-sees-opportunities-in-federal-budget-measures-to-support-investment-and-economic-growth/","summary":"Restaurants Canada welcomed Budget 2026 capital-investment incentives, tax simplification, affordability supports and immigration alignment with regional labour needs, noting restaurants employ 1.2M people and buy $30B of Canadian food annually. CEO Kelly Higginson said 98% are small businesses and 67% report lower profitability than a year ago. (Partial: based on the article's opening paragraphs only.)","digestN":42,"opinion":false,"navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","published":"2026-11-05T22:54:19+00:00","tradeExcerpt":"Restaurants Canada supports the federal government’s efforts in Budget 2026 to strengthen Canada’s economy, encourage business investment and... The post Restaurants Canada sees opportunities in federal budget measures to support investment and economic growth appeared first on Restaurants Canada .","origSection":"Trade journals — Cdn retail & consumer","pinTier":"theme"},{"n":43,"source":"Canadian Grocer","section":"Coverage & consumer health","author":"","headline":"Calgary Co-op hires Rich McLellan as CFO","url":"https://canadiangrocer.com/calgary-co-op-hires-rich-mclellan-cfo","summary":"Calgary Co-op named Rich McLellan CFO; he brings about 40 years of executive experience including CFO of Canexus and recently served on the co-op's board (REDI chair; Audit and Governance). The hire follows Andrew Clarke's July appointment as CEO. (Partial: based on the article's opening paragraphs only.)","digestN":43,"opinion":false,"navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","published":"2026-11-05T22:20:26+00:00","tradeExcerpt":"McLellan brings 40 years of executive leadership experience to co-operative","origSection":"Trade journals — Cdn retail & consumer","pinTier":"theme"},{"n":44,"source":"Retail Insider","section":"Coverage & consumer health","author":"","headline":"Leon’s Furniture reports higher third-quarter profit despite lower sales","url":"https://retail-insider.com/retail-insider/2026/11/leons-furniture-reports-higher-third-quarter-profit-despite-lower-sales/","summary":"Leon's Q3 net income rose to $50.9M from $50.3M despite revenue −0.9% to $672.8M; same-store sales −1.2%. Furniture −5.6% on inventory delays, while appliances rebounded and mattresses grew for a third quarter. Gross margin held about 44.5%; results include a $12.5M gain on an Edmonton DC sale.","digestN":44,"opinion":false,"navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","published":"2026-11-05T21:54:54+00:00","tradeExcerpt":"Leon’s Furniture reported a 1.2 per cent increase in third-quarter net income as revenue declined 0.9 per cent, with inventory delays weighing on furniture sales and a property sale boosting earnings.","origSection":"Trade journals — Cdn retail & consumer","pinTier":"theme"},{"n":45,"source":"Retail Insider","section":"Coverage & consumer health","author":"","headline":"Kits Eyecare reports record third-quarter revenue as glasses sales climb 59%","url":"https://retail-insider.com/retail-insider/2026/11/kits-eyecare-reports-record-third-quarter-revenue-as-glasses-sales-climb-59/","summary":"Kits Eyecare Q3 revenue hit a record $63.7M (+21.6%) as glasses sales jumped 59.3% to $11.3M; contact lenses +15.7% to $52.4M. Adjusted EBITDA was $2.9M (16th straight positive quarter); net income fell to $672k from $1.9M. Active customers reached 1.175M; cash $30.6M with no debt.","digestN":45,"opinion":false,"navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","published":"2026-11-05T21:24:02+00:00","tradeExcerpt":"Vancouver-based Kits Eyecare posted record third-quarter revenue of $63.7 million, supported by higher glasses sales, repeat customer growth and increased operating cash flow.","origSection":"Trade journals — Cdn retail & consumer","pinTier":"theme"},{"n":46,"source":"CCentral","section":"Coverage & consumer health","author":"","headline":"Here's how the U.S. midterm election results could affect Canada","url":"https://ccentral.ca/heres-how-us-midterm-election-results-could-affect-canada","summary":"CCentral outlines how a Democratic Congress could affect Canada: bills to rein in Trump's Canada tariffs are likely, but a veto would need a two-thirds override. Trade talks collapsed in August amid 50% duties and product bans; a Section 338 lawsuit challenges the legal basis. Some also hope midterm pressure ends the Iran war that juiced gas prices.","digestN":46,"opinion":false,"navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","published":"2026-11-05T20:04:39+00:00","tradeExcerpt":"Americans casting votes in Michigan on Tuesday said they wanted to see the trade war end.","origSection":"Trade journals — Cdn retail & consumer","pinTier":"theme"},{"n":47,"source":"Retail Insider","section":"Coverage & consumer health","author":"","headline":"Primaris Expands Méga Parc with $1 Million Atlas Mini-Golf Attraction","url":"https://retail-insider.com/retail-insider/2026/11/primaris-expands-mega-parc-with-1-million-atlas-mini-golf-attraction/","summary":"Primaris is opening Atlas Mini-Golf (about $1M, 4,200 sq ft) on Nov 6 opposite Méga Parc at Galeries de la Capitale in Quebec City, separately ticketed from the day pass. Management estimates about 70% of Méga Parc visitors also shop or dine in the mall.","digestN":47,"opinion":false,"navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","published":"2026-11-05T18:24:29+00:00","tradeExcerpt":"Primaris REIT is opening the nearly $1-million Atlas Mini-Golf attraction at Méga Parc in Quebec City. New interviews reveal the landlord’s entertainment strategy, projected operating revenue, growing events business and plans for further investment in 2028.","origSection":"Trade journals — Cdn retail & consumer","pinTier":"theme"},{"n":48,"source":"Retail Insider","section":"Coverage & consumer health","author":"","headline":"Casavogue Highlights Canadian-Made Bermex Dining Furniture","url":"https://retail-insider.com/retail-insider/2026/11/casavogue-highlights-canadian-made-bermex-dining-furniture/","summary":"Casavogue highlights Québec-made Bermex dining furniture amid PwC data that 54% of Canadians would pay more for Canadian-made holiday goods (up from 49%). Bermex (Maskinongé, since 1983) offers birch tables such as Expression and Clara with customizable finishes.","digestN":48,"opinion":false,"navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","published":"2026-11-05T16:02:00+00:00","tradeExcerpt":"Casavogue in Montréal showcases Canadian-made Bermex dining furniture, including the Expression and Clara tables and Rocko and Luca chairs. The Québec manufacturer offers customizable wood finishes and upholstery, with showroom consultants helping customers plan coordinated dining spaces.","origSection":"Trade journals — Cdn retail & consumer","pinTier":"theme"},{"n":49,"source":"The Globe and Mail","section":"Coverage & consumer health","author":"","headline":"Rebound expected in U.S. job growth in October, with wage gains that trailed inflation","url":"https://www.theglobeandmail.com/business/economy/article-us-jobs-october-2026-wages-inflation/","summary":"US employers added a stronger-than-expected 165,000 jobs in October and unemployment dipped to 4.1%, with August–September revised up 84,000. Hourly wages rose only 3.1% year over year, trailing inflation. Professional services +70k and healthcare +42k; leisure/hospitality cut 10,600. The report lands days after voters handed Democrats Congress over cost-of-living anger.","digestN":49,"opinion":false,"origSection":"Globe — Business & Investing","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"consumer"},{"n":50,"source":"The Globe and Mail","section":"Coverage & consumer health","author":"","headline":"Canada expected to add jobs in October, unemployment rate to remain steady","url":"https://www.theglobeandmail.com/canada/article-canada-expected-to-add-jobs-in-october-unemployment-rate-to-remain/","summary":"Canada's unemployment rate rose to 6.7% in October from 6.5% as the economy shed 4,700 jobs, missing a Reuters poll that expected a +13,600 rebound after 110,000 cumulative losses in August–September. Private-sector employment fell 53,000 while the public sector added 50,000; youth joblessness jumped to 13.7%. Wholesale/retail led losses (−29,000); average hourly wages rose 2.2%.","digestN":50,"opinion":false,"origSection":"Globe — Business & Investing","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"consumer","featured":"Globe"},{"n":51,"source":"The Globe and Mail","section":"Coverage & consumer health","author":"","headline":"Housing commitments in budget include tripling non-market options, new exemption to ban on foreign buyers","url":"https://www.theglobeandmail.com/investing/personal-finance/article-housing-commitments-in-budget-include-tripling-non-market-options-new/","summary":"Budget 2026 triples non-market housing ambitions over a decade and commits to ending homelessness, with about $5B long-term for supportive housing that includes mental-health and addictions services via Build Canada Homes. Maytree's Alexi White called the plan stronger than Trudeau-era pledges but said provinces must fund ongoing operations. Ottawa also extended the foreign-buyer ban with a new-build exemption.","digestN":51,"opinion":false,"origSection":"Globe — Business & Investing","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"consumer"},{"n":52,"source":"The Globe and Mail","section":"Coverage & consumer health","author":"","headline":"Canada-U.S trade talks are progressing. Here’s why a deal could make mortgages more expensive","url":"https://www.theglobeandmail.com/investing/personal-finance/article-best-fixed-variable-mortgage-rates-nov-5/","summary":"Carney says US trade talks are advancing with Americans 'offering more' and 'asking less,' but CIBC's Benjamin Tal warns a deal would remove the soft-economy brake and let the BoC hike faster on oil-driven inflation—possibly a second 2027 hike beyond CIBC's base case. Bond markets already price two to three more hikes by mid-2027; variable mortgages would feel it first.","digestN":52,"opinion":false,"origSection":"Globe — Business & Investing","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"consumer"},{"n":53,"source":"The Globe and Mail","section":"Coverage & consumer health","author":"","headline":"From a new tax deadline to a revamped RRSP, six ways the budget could affect your wallet","url":"https://www.theglobeandmail.com/business/article-how-the-federal-budget-will-affect-canadians-wallets/","summary":"Budget 2026 pocketbook tweaks include moving the tax-filing deadline to May 15 (from 2028 season), a proposed 'RRSP-for-life' that ends mandatory RRIF conversions at 71, and a boost to the Canada Groceries and Essentials Benefit. The piece also flags free museum access for children and other small affordability measures without a grand tax overhaul.","digestN":53,"opinion":false,"origSection":"Globe — Business & Investing","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"consumer"},{"n":54,"source":"The Globe and Mail","section":"Coverage & consumer health","author":"","headline":"How malaise in the U.S. housing market helped fuel the blue wave","url":"https://www.theglobeandmail.com/business/article-how-malaise-in-the-us-housing-market-helped-fuel-the-blue-wave/","summary":"US housing is in a deep freeze—starts plunged in September and the NAHB/Wells Fargo builder index hit a nearly 15-year low—even as Q3 GDP grew on AI investment. Labour shortages, deportations, tariffs on copper/aluminum/lumber and higher mortgage rates keep prices elevated and affordability stressed, feeding the cost-of-living anger that powered the Democratic midterm wave.","digestN":54,"opinion":false,"origSection":"Globe — Business & Investing","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"consumer"},{"n":55,"source":"The Wall Street Journal","section":"Coverage & consumer health","author":"","headline":"U.S. Jobless Claims Slide Lower Again - WSJ","url":"https://www.wsj.com/economy/jobs/u-s-jobless-claims-slide-lower-again-54f85605","summary":"Initial US jobless claims fell for a fifth straight week to 197,000 (vs 200,000 expected) in the week through Oct 3; continuing claims rose to 1.72M. The low-hire, low-fire backdrop keeps labour from cooling inflation and keeps rate-hike pressure on the Fed.","digestN":55,"opinion":false,"origSection":"WSJ — Economy","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"consumer"},{"n":56,"source":"Bloomberg","section":"Coverage & consumer health","author":"","headline":"Ikea Sales Fall as Cash-Strapped Shoppers Curb Furniture Buying","url":"https://www.bloomberg.com/news/articles/2026-11-06/ikea-sales-fall-as-cash-strapped-shoppers-curb-furniture-buying","summary":"","digestN":56,"opinion":false,"origSection":"Bloomberg","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"consumer"},{"n":57,"source":"Reuters","section":"Coverage & consumer health","author":"","headline":"Tech selloff wipes out hedge fund gains, prompting risk cuts and layoffs","url":"https://www.reuters.com/world/china/tech-selloff-wipes-out-hedge-fund-gains-prompting-risk-cuts-layoffs-2026-11-06/","summary":"Thursday's tech rout wiped year-to-date gains at many equity long-short funds (Goldman: tech L/S −4% on the day, YTD roughly flat after a +24% June peak). Walleye Capital said it will shrink its equity L/S book, cut a substantial share of that team and return capital after its worst month since March 2020. More multi-manager platforms are cutting leverage and laying off losing pods.","digestN":57,"opinion":false,"origSection":"Reuters","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"consumer"},{"n":58,"source":"Reuters","section":"Coverage & consumer health","author":"","headline":"US job growth expected to pick up in October, with moderation in wage gains","url":"https://www.reuters.com/business/us-job-growth-expected-pick-up-october-with-moderation-wage-gains-2026-11-06/","summary":"Economists polled by Reuters expected October nonfarm payrolls +65,000 with unemployment steady at 4.2% (chance of 4.1%) and annual wage growth dipping below 3% for the first time in nearly 5½ years—supporting the view that labour is not stoking inflation even as openings firm and layoffs stay low.","digestN":58,"opinion":false,"origSection":"Reuters","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"consumer"},{"n":59,"source":"CBC","section":"Coverage & consumer health","author":"","headline":"Worst of beef price hikes may be over, but don’t expect cheaper steak anytime soon","url":"https://www.cbc.ca/news/canada/calgary/sidhu-beef-prices-finally-stabilizing-9.7409526","summary":"Canfax's Brenna Grant says the worst of Canada's beef price spikes is over after +8.7% y/y in September and +55.5% over five years; tags have been flatter through much of 2026. Cattle inventories rose 3.2% to 12.1M as of July 1—the largest annual gain since 2004—but ranchers say meaningful price drops still need good moisture and herd rebuilding.","digestN":59,"opinion":false,"origSection":"CBC","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"consumer"},{"n":60,"source":"CBC","section":"Coverage & consumer health","author":"","headline":"From groceries to tax credits, how much is in the federal budget for your wallet?","url":"https://www.cbc.ca/news/business/budget-2026-gas-groceries-affordability-9.7411104","summary":"Budget 2026 tops up the Canada Groceries and Essentials Benefit by 50% for 2026–27 (up to $1,290 for a single / $2,570 for a couple with two kids; $4.1B more support), makes the Canada caregiver credit refundable (extending up to $1,260 to ~180,000 people), and proposes merging RRSPs and RRIFs into an 'RRSP-for-life.' The fuel-excise suspension (~10¢/L) remains.","digestN":60,"opinion":false,"origSection":"CBC","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"consumer"},{"n":61,"source":"CBC","section":"Coverage & consumer health","author":"","headline":"Carney's new budget aims to end homelessness in 10 years","url":"https://www.cbc.ca/news/politics/budget-homelessness-canada-decade-9.7411226","summary":"Finance Minister Champagne framed Budget 2026 as a path to end homelessness in 10 years, proposing $11.2B over four years and $17.8B later for supportive housing, mental-health/addictions facilities and prevention. An 'integrated supports fund' via Build Canada Homes would pair housing with health and social services; chronic homelessness rose 59% from 2020–25 despite a prior 50% cut target.","digestN":61,"opinion":false,"origSection":"CBC","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"consumer"},{"n":62,"source":"CBC","section":"Coverage & consumer health","author":"","headline":"Mark Carney's quiet revolution rests on investment and affordability","url":"https://www.cbc.ca/news/politics/carney-champagne-budget-master-destiny-analysis-9.7411333","summary":"CBC frames Carney's second budget as a quiet revolution built on investment and affordability—'maîtres chez nous.' The largest line item is the productivity mega-deduction (~$36B over five years, a quarter of new spending), plus a capital-gains exemption for entrepreneurs, nearly $9B for clean electricity and more than $2B for forestry transformation.","digestN":62,"opinion":false,"origSection":"CBC","navGroup":"Coverage & consumer health","navLabel":"Coverage & consumer","pinTier":"consumer"},{"n":63,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Laurentian Bank branches close as bank migrates customers to National Bank","url":"https://www.theglobeandmail.com/business/article-laurentian-bank-branches-close-national-bank-migration/","summary":"Laurentian's 55 Quebec branches close Friday as retail and SME banking migrates to National Bank after Monday's deal close (Fairstone bought Laurentian; National took the portfolios). Debit cards deactivate Friday; National cards and ABM access start Nov 9. Visa cards keep working; clients should keep Laurentian credit open until transfer instructions arrive.","digestN":63,"opinion":false},{"n":64,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Enbridge’s quarterly profit rises on strength in natural gas businesses","url":"https://www.theglobeandmail.com/business/article-enbridge-third-quarter-results-natural-gas-business/","summary":"Enbridge Q3 earnings rose to $1.29B (59¢) from $682M (30¢), lifted by gas transmission adjusted core profit of $1.43B (from $1.26B) and gas distribution/storage of $665M (from $560M) as data-centre power and gas demand expand. (Partial: based on the article's opening paragraphs only.)","digestN":64,"opinion":false},{"n":65,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Business Brief: The big budget breakdown","url":"https://www.theglobeandmail.com/business/article-business-brief-the-big-budget-breakdown/","summary":"Business Brief: Budget 2026 outlines $151.5B in new five-year spending vs the spring update, with a 2026–27 deficit of $62.3B falling only to $52.9B by 2030–31. Also teed up: merging federal financing agencies into a simpler stack with a $25B sovereign wealth fund, Canadian auto hopes after the US midterms, and Wall Street's worst day since April 2025.","digestN":65,"opinion":false},{"n":66,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Wall Street’s week ahead: As tech swoon roils market, U.S. inflation data on tap","url":"https://www.theglobeandmail.com/investing/article-wall-streets-week-ahead-as-tech-swoon-roils-market-us-inflation-data/","summary":"Investors head into a week of CPI and tech earnings (CoreWeave, Applied Materials, Cisco) after the Nasdaq closed nearly 12% below its Oct 6 high—official correction—on fears a Democratic Congress will slow AI data-centre buildouts. State Street's Marvin Loh called it a fragile momentum trade with lasting political overhang.","digestN":66,"opinion":false},{"n":67,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Morning Update: Ottawa’s budget bet","url":"https://www.theglobeandmail.com/canada/article-morning-update-ottawas-budget-bet/","summary":"Morning Update: Ottawa is betting oil-driven revenue windfalls on long-term investment; auto hopes rise after the Democratic midterm wave; Wall Street just posted its deepest one-day drop in 19 months as AI sentiment soured. Also noted: European flight bomb-threat hoaxes and Korea cosmetic-tourism growth.","digestN":67,"opinion":false},{"n":68,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Before the Bell: What every Canadian investor needs to know today","url":"https://www.theglobeandmail.com/investing/markets/inside-the-market/article-before-the-bell-what-every-canadian-investor-needs-to-know-today-1597/","summary":"Before the Bell: Nasdaq futures mixed after the AI rout and a strong US jobs print that firm Fed-hike odds; TSX futures soft after Canada's weaker October jobs. Canadian reporters watch Enbridge, Brookfield, Telus (loss and health writedown), Emera and peers; Jefferies called Thursday's selloff reactionary, not a fundamental reset.","digestN":68,"opinion":false},{"n":69,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Premarket: Nasdaq futures rise after steep AI selloff as chip stocks stabilize","url":"https://www.theglobeandmail.com/investing/markets/inside-the-market/market-news/article-premarket-nasdaq-futures-rise-after-steep-ai-selloff-as-chip-stocks/","summary":"TSX opened −0.33% after Canada's jobless rate hit a six-month high of 6.7% (−4,700 jobs). Nasdaq bounced as chips stabilized; Dow −0.94%, S&P +0.26%, Nasdaq +1.23% early Friday. Europe stayed weak after Thursday's AI-led rout on Democratic-Congress regulation fears.","digestN":69,"opinion":false},{"n":70,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"‘It’s actually a bit of a disaster’: Analysts and investors react to AI market rout","url":"https://www.theglobeandmail.com/investing/article-its-actually-a-bit-of-a-disaster-analysts-and-investors-react-to-ai/","summary":"Market voices on the AI rout: CMC's Christopher Forbes called client margin calls 'a bit of a disaster' and a six-year structural pause on AI/data centres; Beijing's Dong Baozhen said AI prices were built on 'rosy illusions'; BNP's Jason Lui said flows are asking more about onshore China. Nasdaq −5.5% Thursday; Asia followed with KOSPI −6% and Taiwan −4.5%.","digestN":70,"opinion":false},{"n":71,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Markets fret over growth and inflation, just as tech rout gains speed","url":"https://www.theglobeandmail.com/investing/article-markets-fret-over-growth-and-inflation-just-as-tech-rout-gains-speed/","summary":"Markets juggle sticky inflation expectations and a slowing growth scare even as oil's 15% weekly drop to just under $100 raises Iran de-escalation hopes. UMich one-year inflation expectations rose to 4.7%; AllianceBernstein warns commodity shocks may persist beyond midterms. Oil is still +64% YTD.","digestN":71,"opinion":false},{"n":72,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Oil set for sharp weekly drop after U.S. midterms raise hopes of more Mideast crude exports","url":"https://www.theglobeandmail.com/investing/article-oil-set-for-sharp-weekly-drop-after-us-midterms-raise-hopes-of-more/","summary":"Brent near US$98.55 and WTI US$91.09 Friday morning after midterm-driven de-escalation hopes; Brent is on track for a ~16% weekly drop (steepest since COVID in percentage terms). Rystad says balances look oversupplied but quality/Hormuz logistics still matter; any Iran deal backlash could re-tighten.","digestN":72,"opinion":false},{"n":73,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Fund managers to pitch French investors on Canada as an investment destination","url":"https://www.theglobeandmail.com/business/article-fund-managers-pitch-french-investors-canada-investment-destination/","summary":"CVCA and Ambassador Nathalie Drouin host French LPs (Crédit Agricole, Ardian, Société Générale Assurances, EIF and others) in Paris to pitch Canadian private capital after Carney's Investment Summit. Canadian presenters include Teralys, Inovia, True North, Sagard, CPPIB, CDPQ, BDC and EDC.","digestN":73,"opinion":false},{"n":74,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Ottawa promises reform to spur competition in the banking sector","url":"https://www.theglobeandmail.com/business/article-ottawa-promises-legislative-changes-competition-banking-sector/","summary":"Budget 2026 adds a secondary competition objective to OSFI's mandate, a one-year clock on new-bank applications, and lifts the widely held ownership threshold from $12B to $25B to help smaller banks scale. The Big Six hold >90% share; Routledge's June pilot already aims to shorten the path to a bank licence.","digestN":74,"opinion":false},{"n":75,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Ottawa to grant permanent residency to 200,000 temporary residents","url":"https://www.theglobeandmail.com/business/article-federal-budget-2026-immigration-canada/","summary":"Ottawa will grant permanent residency to 200,000 temporary residents already in Canada (100k workers via Start-up/home-care/Atlantic/agri-food pathways; 100k humanitarian including Ukraine and Hong Kong streams), on top of keeping annual PR admissions at 380,000 and temporary intake at 370,000 through 2029.","digestN":75,"opinion":false},{"n":76,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"A budget with more questions than answers","url":"https://www.theglobeandmail.com/business/commentary/article-a-budget-with-more-questions-than-answers/","summary":"Columnist argues Budget 2026's forest is Carney's bid to lift Canada's long-term growth via an 'investment supercycle,' with affordability and sovereignty as political cover. Without faster growth, affordability programs and the 'maîtres chez nous' sovereignty pitch are not fiscally sustainable.","digestN":76,"opinion":true},{"n":77,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Airbnb raises revenue growth forecast, fueled by global demand, corporate travel","url":"https://www.theglobeandmail.com/world/article-airbnb-raises-revenue-growth-forecast/","summary":"Airbnb raised 2026 revenue-growth guidance to 'high teens' (from 'at least mid-teens') and authorized another US$12B buyback; shares jumped 11% after hours. Q3 nights/seats booked +16% to 155M; CFO Ellie Mertz sees no material hit yet from European unrest or the Middle East conflict. An AI trip-planning agent is due H1 2027.","digestN":77,"opinion":false},{"n":78,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Markets plunge in a dramatic reversal from Wednesday’s stock market rally","url":"https://www.theglobeandmail.com/investing/markets/inside-the-market/article-markets-plunge-in-a-dramatic-reversal-from-wednesdays-stock-market/","summary":"Thursday reversed Wednesday's midterm rally: S&P −4.4% (worst since April 2025) and Nasdaq −5.5% into correction (−11.9% from the Oct 6 high) as investors fretted a Democratic Congress would slow AI data-centre buildouts. Nvidia −9.4%, SpaceX −9.2%; Yorkville's Dan Ives cited 'white-knuckle fears' for the AI trade.","digestN":78,"opinion":false},{"n":79,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Democrats’ control of U.S. Congress won’t give Canada an edge in trade talks","url":"https://www.theglobeandmail.com/business/commentary/article-democrats-control-of-us-congress-wont-give-canada-an-edge-in-trade/","summary":"Opinion: Democratic control of Congress will not end the Canada trade war—Trump still sets tariff strategy, Democrats have their own Buy American streak, and Carney wants a deal Americans will actually keep. Midterm wins do not make Trump a reliable counterpart for Ottawa.","digestN":79,"opinion":true},{"n":80,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Anthropic’s IPO timing in doubt due to AI backlash, sources say","url":"https://www.theglobeandmail.com/business/article-anthropic-ipo-valuation-ai-investors/","summary":"Potential Anthropic IPO investors are questioning a next-week roadshow and ~US$1.5T valuation after the AI selloff, four sources told Reuters; some want a bigger discount given losses and compute commitments. October revenue (blank in the S-1) is a key ask; a delay would deepen AI-ecosystem jitters after anti-data-centre ballot wins.","digestN":80,"opinion":false},{"n":81,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Budget delivers major tax break for entrepreneurs, investors similar to Silicon Valley incentive","url":"https://www.theglobeandmail.com/business/article-federal-budget-2026-canada-artificial-intelligence-technology/","summary":"Budget 2026's Canada Growth Incentive would exempt the first $15M of gains for founders, staff and backers of certain private Canadian firms—akin to a Silicon Valley break—and ease rollover timing, answering CCI/CVCA/angel lobbies. It applies only to shares issued from Thursday on; a broader tax overhaul was deferred.","digestN":81,"opinion":false},{"n":82,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Federal budget proposes incentives to encourage buildout of electrical grid","url":"https://www.theglobeandmail.com/business/article-federal-budget-2026-canada-energy-infrastructure-resources/","summary":"Budget 2026 extends the Clean Electricity ITC (up to 15% refund) to each province's highest-voltage lines (e.g. 735 kV in Quebec/Nfld, 500 kV in Alberta/Ontario/Manitoba/BC), clarifying May's Electricity Strategy. Details on federal cost-sharing for interprovincial grid integration remain thin versus the 2050 doubling goal.","digestN":82,"opinion":false},{"n":83,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Wall Street fear gauge soars and retail traders bolt as markets in tailspin","url":"https://www.theglobeandmail.com/investing/article-wall-street-fear-gauge-soars-and-retail-traders-bolt-as-markets-in/","summary":"Retail traders dumped more than US$1B and the VIX jumped 11.75 points to an eight-month high near 28.4 as Thursday's AI unwind hit chips and data-centre names. Advisers called it a steamroller unwind of Wednesday's rally and a crowded AI trade ahead of vol-driven fund selling.","digestN":83,"opinion":false},{"n":84,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"New energy policies could spur expansion of oil sands operations, ConocoPhillips says","url":"https://www.theglobeandmail.com/business/article-conocophillips-says-new-energy-policies-could-spur-expansion-of-oil/","summary":"ConocoPhillips CEO Andy O'Brien told analysts that Ottawa–Alberta oil-sands fiscal talks (MOU with five majors; definitive deals eyed around Nov 15) could make incremental Canadian investment 'more attractive.' Peers in the Oil Sands Alliance include Imperial, Suncor, Cenovus and CNRL; Surmont and undeveloped leases are Conoco's focus.","digestN":84,"opinion":false},{"n":85,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Budget highlights, from housing to business tax relief","url":"https://www.theglobeandmail.com/canada/article-federal-budget-highlights-2026-canada/","summary":"Budget highlights: revenues run ~$23.9B/year above the spring forecast, funding $151.5B of net new five-year spending. The 2026–27 deficit is $62.3B, easing only to $52.9B by 2030–31; federal debt hits $1.36T. The PBO still sees cumulative deficits $44.7B larger than Ottawa's plan.","digestN":85,"opinion":false},{"n":86,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Ottawa plans to merge federal financing agencies, set up standalone sovereign wealth fund","url":"https://www.theglobeandmail.com/business/article-federal-budget-2026-business-and-investment-takeaways/","summary":"Ottawa will merge BDC and EDC (5,100 staff, $128B assets) into one development bank, shift CIB accountability to Finance, broaden the Canada Growth Fund, and legislate the Canada Strong Fund as a $25B arm's-length sovereign wealth vehicle—simplifying a crowded financing stack meant to catalyze Carney's investment targets.","digestN":86,"opinion":false},{"n":87,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Ottawa bets spending boost will deliver future economic gains","url":"https://www.theglobeandmail.com/canada/article-federal-budget-canada-2026-breakdown/","summary":"Budget 2026 spends almost all of an oil-driven revenue windfall: $151.5B new five-year outlays vs a $158.3B forecast improvement, leaving a $62.3B deficit in 2026–27 and $50–60B annual gaps ahead. Debt service is seen rising to $85.5B by 2030–31. Pillars: investment supercycle, affordability (including a CGEB top-up) and sovereignty.","digestN":87,"opinion":false},{"n":88,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Nutrien will not sell its phosphate division, citing war in the Middle East","url":"https://www.theglobeandmail.com/business/economy/article-nutrien-will-not-sell-its-phosphate-division-citing-war-in-the-middle/","summary":"Nutrien will not sell its phosphate division after bids 'didn't meet expectations' amid Hormuz-linked sulphur volatility (nearly half of seaborne sulphur trade; prices roughly doubled since the Iran war). CEO Ken Seitz called phosphate an 'unsustainable situation'; Q3 net earnings fell 39% y/y with phosphate a major drag.","digestN":88,"opinion":false},{"n":89,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Quebecor shares climb as company reports subscriber gains, rise in wireless revenue","url":"https://www.theglobeandmail.com/business/article-quebecor-shares-climb-as-company-reports-subscriber-gains-rise-in/","summary":"Quebecor added nearly 137,000 net wireless customers in Q3 (vs ~92k expected)—its largest quarter since launching mobile in 2010—beating BCE (53.700) and Rogers (17,000). Wireless revenue +9.6% to $492M; shares +4.3%. Freedom Mobile expansion keeps pressuring incumbents as immigration cools the subscriber pool.","digestN":89,"opinion":false},{"n":90,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Gathering AI storm clouds doom tech stocks to darkest day in a year","url":"https://www.theglobeandmail.com/investing/article-gathering-ai-storm-clouds-doom-tech-stocks-to-darkest-day-in-a-year/","summary":"Nasdaq 100 was on track for >US$2T of market-value losses on fears Democrats will stall AI infrastructure; the Philadelphia semiconductor index fell as much as 11.2%, Nvidia −9%, AMD −15%. LPL's Adam Turnquist said vol had not yet hit classic capitulation extremes despite the second straight heavy down day.","digestN":90,"opinion":false},{"n":91,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Wealthsimple launches AI assistant for clients, plans to allow third-party AI tools in 2027","url":"https://www.theglobeandmail.com/business/article-wealthsimple-ai-assistant-chatgpt-claude/","summary":"Wealthsimple is launching an in-house AI assistant and will let clients connect ChatGPT or Claude to their accounts from early 2027 with graded permissions—counter to RBC, BMO and TD blocking third-party agents over security. Meta's Muse and Spear Street's Instinct are also under review.","digestN":91,"opinion":false},{"n":92,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Lightspeed posts $4.2-million quarterly loss as revenue edges higher","url":"https://www.theglobeandmail.com/business/article-lightspeed-second-quarter-results-2026/","summary":"Lightspeed's Q2 loss narrowed to US$4.2M (3¢) from US$32.7M; adjusted EPS was 17¢ vs 16¢. Revenue edged up to US$323.8M from US$319M as subscriptions rose to US$97.8M while transaction-based revenue slipped to US$213.9M. (Partial: based on the article's opening paragraphs only.)","digestN":92,"opinion":false},{"n":93,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"Qualcomm shares slump as weak smartphone chip sales overshadow data-centre momentum","url":"https://www.theglobeandmail.com/investing/article-qualcomm-stock-smartphone-chip-sales-data-centres/","summary":"Qualcomm shares fell >9% after handset-chip revenue dropped 26% to US$5.14B, pulling chip-segment sales −8% to US$9.02B despite data-centre and auto progress. CEO Cristiano Amon said the firm prepared early for memory shortages; at least 10 brokerages cut targets.","digestN":93,"opinion":false},{"n":94,"source":"The Globe and Mail","section":"Globe — Business & Investing","author":"","headline":"BCE’s free cash flow falls as it boosts spending on AI data centres, U.S. fibre networks","url":"https://www.theglobeandmail.com/business/article-bce-third-quarter-results-ai-data-centres-us-fibre-networks/","summary":"BCE's Q3 capex jumped 49.3% on its Saskatchewan AI data centre and Ziply Fiber US build, cutting free cash flow nearly 15%. Wireless net adds slowed; Northwestel’s $1B Indigenous sale may become a minority partnership with Bell retaining control. Management still plans to quadruple AI data-centre capacity, potentially topping $5B.","digestN":94,"opinion":false},{"n":95,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"Shares in Elon Musk’s SpaceX, Tesla Fall Premarket After Democrats Sweep Midterms - WSJ","url":"https://www.wsj.com/business/shares-in-elon-musks-spacex-tesla-fall-premarket-after-democrats-sweep-midterms-a10325e6","summary":"","digestN":95,"opinion":false},{"n":96,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"Deutsche Telekom Raises Outlook and Plans Dividend Increase - WSJ","url":"https://www.wsj.com/business/earnings/deutsche-telekom-raises-outlook-plans-dividend-increase-cbb6085e","summary":"","digestN":96,"opinion":false},{"n":97,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"Moscow Seizes Japan Tobacco’s Russia Factories - WSJ","url":"https://www.wsj.com/business/japan-urges-russia-to-return-control-of-japan-tobacco-assets-cfe0723e","summary":"","digestN":97,"opinion":false},{"n":98,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"Exclusive | Major Investors Are Skeptical Anthropic IPO Can Achieve $1.5 Trillion Valuation - WSJ","url":"https://www.wsj.com/finance/major-investors-are-skeptical-anthropic-ipo-can-achieve-1-5-trillion-valuation-ca965d8b","summary":"","digestN":98,"opinion":false},{"n":99,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"Grab Pivots Back to Southeast Asia After Blocked Taiwan Deal - WSJ","url":"https://www.wsj.com/business/earnings/grab-pivots-back-to-southeast-asia-after-blocked-taiwan-deal-aa5a69d9","summary":"","digestN":99,"opinion":false},{"n":100,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"Macquarie Beats Expectations With 50% Jump in First-Half Profit - WSJ","url":"https://www.wsj.com/business/earnings/macquarie-beats-expectations-with-50-jump-in-first-half-profit-b8de7b98","summary":"","digestN":100,"opinion":false},{"n":101,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"DraftKings Cuts Outlook as It Pours More Money Into Prediction Markets - WSJ","url":"https://www.wsj.com/business/earnings/draftkings-cuts-outlook-as-it-pours-more-money-into-prediction-markets-140041b3","summary":"","digestN":101,"opinion":false},{"n":102,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"Cloudflare Stock Surges on Lifted Full-Year Outlook, Third-Quarter Revenue Growth - WSJ","url":"https://www.wsj.com/business/earnings/cloudflare-stock-surges-on-lifted-full-year-outlook-third-quarter-revenue-growth-984186bf","summary":"","digestN":102,"opinion":false},{"n":103,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"Lyft’s Bookings Rise on Strength in Partnerships, New Products - WSJ","url":"https://www.wsj.com/business/earnings/lyfts-bookings-rise-on-strength-in-partnerships-new-products-d8953f77","summary":"","digestN":103,"opinion":false},{"n":104,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"Airbnb Raises Outlook as It Remains Insulated from Global Conflicts - WSJ","url":"https://www.wsj.com/business/earnings/airbnb-raises-outlook-as-it-remains-insulated-from-global-conflicts-a8ffcbf8","summary":"","digestN":104,"opinion":false},{"n":105,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"Sony Boosts Guidance as Profit Jumps on ‘Spider-Man’ Hit, Game Strength - WSJ","url":"https://www.wsj.com/business/earnings/sony-boosts-guidance-as-profit-jumps-on-spider-man-hit-game-strength-4e9322ae","summary":"","digestN":105,"opinion":false},{"n":106,"source":"The Wall Street Journal","section":"WSJ — Business","author":"","headline":"ArcelorMittal Says Europe’s Steel Tariffs Are Boosting Profits - WSJ","url":"https://www.wsj.com/business/earnings/arcelormittal-says-europes-higher-steel-tariffs-are-boosting-profits-e1be8987","summary":"","digestN":106,"opinion":false},{"n":107,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"German Industrial Production Jumped Unexpectedly in September - WSJ","url":"https://www.wsj.com/economy/german-industrial-production-jumped-unexpectedly-in-september-5060bdf9","summary":"","digestN":107,"opinion":false},{"n":108,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"Thailand’s Inflation Accelerates Past Central Bank’s Target - WSJ","url":"https://www.wsj.com/economy/central-banking/thailands-inflation-accelerates-past-central-banks-target-cb096249","summary":"","digestN":108,"opinion":false},{"n":109,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"Bank of Canada to Maintain 2% Inflation Target in Renewed Framework - WSJ","url":"https://www.wsj.com/pro/central-banking/bank-of-canada-to-maintain-2-inflation-target-in-renewed-framework-5ea43ca8","summary":"","digestN":109,"opinion":false},{"n":110,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"Bank of Mexico Cuts Benchmark Interest Rate in Split Decision - WSJ","url":"https://www.wsj.com/pro/central-banking/bank-of-mexico-cuts-benchmark-interest-rate-in-split-decision-4d430430","summary":"","digestN":110,"opinion":false},{"n":111,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"Oil Slides Below $100 a Barrel, With Focus on Iran Outlook After U.S. Midterms - WSJ","url":"https://www.wsj.com/business/energy-oil/brent-crude-climbs-above-100-as-middle-east-oil-supply-risks-persist-caaf64bb","summary":"","digestN":111,"opinion":false},{"n":112,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"Oil Set for Sharp Weekly Fall After U.S. Midterms - WSJ","url":"https://www.wsj.com/finance/commodities-futures/oil-holds-gains-after-selloff-ad231914","summary":"","digestN":112,"opinion":false},{"n":113,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"After Two Years of Unchecked Power, Trump Faces a Tough New Reality - WSJ","url":"https://www.wsj.com/politics/after-two-years-of-unchecked-power-trump-faces-a-tough-new-reality-f24a98b6","summary":"","digestN":113,"opinion":false},{"n":114,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"A CFO’s Superpower in a Midterm Election: Planning for Multiple Scenarios - WSJ","url":"https://www.wsj.com/cfo-journal/a-cfos-superpower-in-a-midterm-election-planning-for-multiple-scenarios-05fe04f8","summary":"","digestN":114,"opinion":false},{"n":115,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"Gulf Airports Built to Connect the World Are Now in the Crosshairs - WSJ","url":"https://www.wsj.com/world/middle-east/gulf-airports-built-to-connect-the-world-are-now-in-the-crosshairs-9213d66a","summary":"","digestN":115,"opinion":false},{"n":116,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"To Cross the Red Sea, Shippers Email Houthi Rebels. Read Their Inbox. - WSJ","url":"https://www.wsj.com/world/middle-east/to-cross-the-red-sea-shippers-email-houthi-rebels-read-their-inbox-5ecace40","summary":"","digestN":116,"opinion":false},{"n":117,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"Qantas Expects $2.63 Billion First-Half Fuel Bill Amid Elevated Oil Prices - WSJ","url":"https://www.wsj.com/business/energy-oil/qantas-expects-2-63-billion-first-half-fuel-bill-amid-elevated-oil-prices-b4657da0","summary":"","digestN":117,"opinion":false},{"n":118,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"Bomb Threats Cause Diverted Flights, Emergency Landings Across Europe - WSJ","url":"https://www.wsj.com/business/airlines/flights-across-europe-diverted-after-bomb-threats-2e860a9c","summary":"","digestN":118,"opinion":false},{"n":119,"source":"The Wall Street Journal","section":"WSJ — Economy","author":"","headline":"Emirates Airline Profit Falls After Iran War Disrupts Air Traffic - WSJ","url":"https://www.wsj.com/business/earnings/emirates-airline-profit-falls-after-iran-war-disrupts-air-traffic-1fb8717a","summary":"","digestN":119,"opinion":false},{"n":120,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"Wall Street Gets $2.5 Trillion AI Reality Check With Historic Rout of Tech Stocks","url":"https://www.wsj.com/finance/stocks/wall-street-gets-2-5-trillion-ai-reality-check-with-historic-rout-of-tech-stocks-93985d7c","summary":"","digestN":120,"opinion":false},{"n":121,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"Treasury Yields Turn Higher, Eurozone Bond Yields Drop - WSJ","url":"https://www.wsj.com/finance/investing/u-s-treasurys-little-changed-markets-await-employment-data-88f3f2b6","summary":"","digestN":121,"opinion":false},{"n":122,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"Taiwan Activates Market-Stabilization Measures to Stem AI Bleeding - WSJ","url":"https://www.wsj.com/finance/commodities-futures/taiwan-activates-market-stabilization-measures-to-stem-ai-bleeding-169e36e1","summary":"","digestN":122,"opinion":false},{"n":123,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"Dollar Likely to Remain Resilient After AI-Driven Tech Selloff - WSJ","url":"https://www.wsj.com/finance/currencies/asian-currencies-mixed-diminishing-risk-appetite-might-weigh-84b91434","summary":"","digestN":123,"opinion":false},{"n":124,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"The Argument for Buying Treasury Bonds Is Still Strong - WSJ","url":"https://www.wsj.com/finance/investing/the-argument-for-buying-treasury-bonds-is-still-strong-be338920","summary":"","digestN":124,"opinion":false},{"n":125,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"Gold Falls But Remains on Track for Weekly Gains Ahead of Payrolls Data - WSJ","url":"https://www.wsj.com/finance/commodities-futures/gold-continues-to-rise-amid-better-risk-sentiment-e2d133ff","summary":"","digestN":125,"opinion":false},{"n":126,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"German Bond Yields Fall to Multimonth Lows Amid Tech-Stock Rout - WSJ","url":"https://www.wsj.com/finance/jgb-yields-fall-as-stock-markets-drop-sharply-8f5fbed1","summary":"","digestN":126,"opinion":false},{"n":127,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"U.S. Stocks Slide as AI Rally Hits a Wall - WSJ","url":"https://www.wsj.com/finance/stocks/u-s-stocks-slide-as-ai-rally-hits-a-wall-ec689f1e","summary":"","digestN":127,"opinion":false},{"n":128,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"AI Panic Grips Stocks - WSJ","url":"https://www.wsj.com/finance/investing/ai-panic-grips-stocks-60a59518","summary":"","digestN":128,"opinion":false},{"n":129,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"Healthcare Stocks Caught Up in Market Selloff - WSJ","url":"https://www.wsj.com/finance/stocks/nikkei-falls-5-9-dragged-by-chip-stocks-d8937761","summary":"","digestN":129,"opinion":false},{"n":130,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"Exclusive | CrowdStrike to Buy Two AI Security Startups for $495 Million - WSJ","url":"https://www.wsj.com/pro/cybersecurity/crowdstrike-to-buy-two-ai-security-startups-for-495-million-b0ef6a9e","summary":"","digestN":130,"opinion":false},{"n":131,"source":"The Wall Street Journal","section":"WSJ — Markets & Finance","author":"","headline":"PE Daily: Carlyle Leaders See a Silver Lining in Divided Government - WSJ","url":"https://www.wsj.com/pro/private-equity/pe-daily-carlyle-leaders-see-a-silver-lining-in-divided-government-3a6204f5","summary":"","digestN":131,"opinion":false},{"n":132,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Airbnb Posts 19% Revenue Jump as Chesky Hails 'Growth Mode'","url":"https://www.bloomberg.com/news/articles/2026-11-05/airbnb-posts-19-revenue-jump-as-chesky-hails-growth-mode","summary":"","digestN":132,"opinion":false},{"n":133,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Hertz Shares Plunge as Car Renter Warns It's Running Low on Cash","url":"https://www.bloomberg.com/news/articles/2026-11-05/hertz-misses-estimates-as-inflation-maintenance-hit-profits","summary":"","digestN":133,"opinion":false},{"n":134,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Canada to Reform Bank Ownership Rules in Bid to Stoke Competition","url":"https://www.bloomberg.com/news/articles/2026-11-05/canada-to-reform-bank-ownership-rules-in-bid-to-stoke-competition","summary":"","digestN":134,"opinion":false},{"n":135,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Carney, Bank of Canada Renew Framework to Focus on 2% Inflation Target","url":"https://www.bloomberg.com/news/articles/2026-11-05/carney-bank-of-canada-renew-framework-to-focus-on-2-inflation-target","summary":"","digestN":135,"opinion":false},{"n":136,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Carney Spends Canada's Oil Windfall in Bid for Better Growth","url":"https://www.bloomberg.com/news/articles/2026-11-05/carney-spends-canada-s-oil-windfall-in-bid-to-drive-growth","summary":"","digestN":136,"opinion":false},{"n":137,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"US Stock Futures Rise as Dip Buyers Emerge After AI Selloff","url":"https://www.bloomberg.com/news/articles/2026-11-06/us-stock-futures-rise-as-dip-buyers-emerge-after-ai-selloff","summary":"","digestN":137,"opinion":false},{"n":138,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Fast-Money Systematic Funds Stoked $2.3 Trillion Tech-Stock Rout","url":"https://www.bloomberg.com/news/articles/2026-11-06/fast-money-systematic-funds-stoked-2-3-trillion-tech-stock-rout","summary":"","digestN":138,"opinion":false},{"n":139,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Equity Volatility Jumps Most Since April 2025 Tariff Turmoil","url":"https://www.bloomberg.com/news/articles/2026-11-05/equity-volatility-jumps-most-since-april-2025-tariff-turmoil","summary":"","digestN":139,"opinion":false},{"n":140,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Chips Selloff Worsens as Fears About AI Trade Grip Stock Market","url":"https://www.bloomberg.com/news/articles/2026-11-05/chips-selloff-worsens-as-fears-about-ai-trade-grip-stock-market","summary":"","digestN":140,"opinion":false},{"n":141,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Goldman Traders Say Phones 'Are Exploding' as AI Selloff Worsens","url":"https://www.bloomberg.com/news/articles/2026-11-05/goldman-traders-say-phones-are-exploding-as-ai-selloff-worsens","summary":"","digestN":141,"opinion":false},{"n":142,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Williams Says Fed Should Gather Data to Judge Price Risks","url":"https://www.bloomberg.com/news/articles/2026-11-06/williams-says-fed-should-gather-information-to-judge-price-risks","summary":"","digestN":142,"opinion":false},{"n":143,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Fed's Hammack Says Restrictive Rates Needed to Cool Prices","url":"https://www.bloomberg.com/news/articles/2026-11-05/fed-s-hammack-says-restrictive-rates-needed-to-cool-inflation","summary":"","digestN":143,"opinion":false},{"n":144,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"UK to Require Job Ads to Show Salaries in Pay Disparity Push","url":"https://www.bloomberg.com/news/articles/2026-11-05/uk-to-require-job-ads-to-show-salaries-in-pay-disparity-push","summary":"","digestN":144,"opinion":false},{"n":145,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"French Salary Squeeze Intensifies Ahead of Minimum Wage Talks","url":"https://www.bloomberg.com/news/articles/2026-11-06/french-salary-squeeze-intensifies-ahead-of-minimum-wage-talks","summary":"","digestN":145,"opinion":false},{"n":146,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Copper Moves Lower as US Election Undermines AI and Tariff Trade","url":"https://www.bloomberg.com/news/articles/2026-11-06/copper-moves-lower-as-us-election-undermines-ai-and-tariff-trade","summary":"","digestN":146,"opinion":false},{"n":147,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Moderna Boosts Revenue Guidance on Covid Vaccine Sales","url":"https://www.bloomberg.com/news/articles/2026-11-06/moderna-boosts-revenue-guidance-on-strong-covid-vaccine-sales","summary":"","digestN":147,"opinion":false},{"n":148,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Lilly, Hims Join Forces to Reach More Obesity Drug Patients","url":"https://www.bloomberg.com/news/articles/2026-11-06/lilly-hims-join-forces-to-reach-more-weight-loss-drug-patients","summary":"","digestN":148,"opinion":false},{"n":149,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Atlassian's Shares Slide After Revenue Outlook Disappoints","url":"https://www.bloomberg.com/news/articles/2026-11-06/atlassian-s-shares-slide-after-revenue-outlook-disappoints","summary":"","digestN":149,"opinion":false},{"n":150,"source":"Bloomberg","section":"Bloomberg","author":"","headline":"Maersk Slides as Upgraded Guidance Is Lower Than Anticipated","url":"https://www.bloomberg.com/news/articles/2026-11-05/maersk-slides-as-upgraded-guidance-is-lower-than-anticipated","summary":"","digestN":150,"opinion":false},{"n":151,"source":"FT","section":"FT - Front Page (Home Top Stories)","author":"","headline":"Wall Street set to steady after tech rout","url":"https://www.ft.com/content/642b32dc-e3a1-4df8-ae91-5c84bdeb89e0","summary":"","digestN":151,"opinion":false},{"n":152,"source":"FT","section":"FT - Front Page (Home Top Stories)","author":"","headline":"FirstFT: Global stocks tumble as Democratic sweep sparks AI rout","url":"https://www.ft.com/content/7d123a1c-d627-44c4-adf5-48b75d3313b0","summary":"","digestN":152,"opinion":false},{"n":153,"source":"FT","section":"FT - Front Page (Home Top Stories)","author":"","headline":"Is the AI stock bubble finally bursting?","url":"https://www.ft.com/content/e185d576-c4a6-4fb0-aa03-deda69c900c8","summary":"","digestN":153,"opinion":false},{"n":154,"source":"FT","section":"FT - Front Page (Home Top Stories)","author":"","headline":"The sell-off gets deep","url":"https://www.ft.com/content/4ea585dd-6532-4839-a042-c9d1ad2e23f7","summary":"","digestN":154,"opinion":false},{"n":155,"source":"FT","section":"FT - Front Page (Home Top Stories)","author":"","headline":"America turns on Trump’s tech cheerleaders","url":"https://www.ft.com/content/bda53f77-f391-4750-ab5d-55e09cbbdb7c","summary":"","digestN":155,"opinion":false},{"n":156,"source":"FT","section":"FT - Front Page (Home Top Stories)","author":"","headline":"Who is in the line of fire after the midterm drubbing?","url":"https://www.ft.com/content/580ab1bf-4e2e-46b8-9178-dbf765645754","summary":"","digestN":156,"opinion":false},{"n":157,"source":"FT","section":"FT - Front Page (Home Top Stories)","author":"","headline":"Iran celebrates Trump’s election defeat as mediators push for deal to end war","url":"https://www.ft.com/content/eced6084-7cd7-4633-a8ba-559173e0f6c1","summary":"","digestN":157,"opinion":false},{"n":158,"source":"FT","section":"FT - Front Page (Home Top Stories)","author":"","headline":"Wall Street sheds $3.2tn as tech-heavy Nasdaq plunges","url":"https://www.ft.com/content/3d079b3d-580d-400b-bf9c-56af6a08f60f","summary":"","digestN":158,"opinion":false},{"n":159,"source":"FT","section":"FT - Companies & Markets","author":"","headline":"DraftKings slashes earnings guidance as it bets on new prediction market business","url":"https://www.ft.com/content/5640c74d-24e5-465b-8119-a2595dac7748","summary":"","digestN":159,"opinion":false},{"n":160,"source":"FT","section":"FT - Companies & Markets","author":"","headline":"Tesla to axe Cybertruck as Musk shifts focus to robotics and AI","url":"https://www.ft.com/content/8ec923a8-a581-4995-a92c-c08e16bf2e98","summary":"","digestN":160,"opinion":false},{"n":161,"source":"FT","section":"FT - Companies & Markets","author":"","headline":"British Airways owner warns of higher fares next year as fuel costs rise","url":"https://www.ft.com/content/f48913d1-2cfe-42ef-8c67-17ed95e12bdd","summary":"","digestN":161,"opinion":false},{"n":162,"source":"FT","section":"FT - Companies & Markets","author":"","headline":"Japanese stocks post biggest one-day fall since ‘liberation day’ chaos","url":"https://www.ft.com/content/b77ebe43-a017-4e63-af84-5bdec8f47648","summary":"","digestN":162,"opinion":false},{"n":163,"source":"FT","section":"FT - Companies & Markets","author":"","headline":"Monzo explores fundraising at £7.5bn valuation as private equity talks stall","url":"https://www.ft.com/content/6553ec40-00a8-4832-8ca5-c528b9da224a","summary":"","digestN":163,"opinion":false},{"n":164,"source":"FT","section":"FT - Companies & Markets","author":"","headline":"Putin orders seizure of Japan Tobacco’s Russian business","url":"https://www.ft.com/content/5397eabe-5c04-4851-a216-9a269f69682c","summary":"","digestN":164,"opinion":false},{"n":165,"source":"FT","section":"FT - Companies & Markets","author":"","headline":"Macquarie has ‘runway’ for growth, says outgoing chief","url":"https://www.ft.com/content/92e29c60-9486-48b6-879b-18084ec1822b","summary":"","digestN":165,"opinion":false},{"n":166,"source":"FT","section":"FT - Companies & Markets","author":"","headline":"Britain’s gas use set to surge due to data centres","url":"https://www.ft.com/content/eb1621c8-e50d-4974-b1e4-d175813ee8a7","summary":"","digestN":166,"opinion":false},{"n":167,"source":"FT","section":"FT - Companies & Markets","author":"","headline":"The AI gamble strains for more cash","url":"https://www.ft.com/content/4e0dbca4-5917-483f-b524-8b8a2b4c54b2","summary":"","digestN":167,"opinion":false},{"n":168,"source":"FT","section":"FT - Companies & Markets","author":"","headline":"Accenture and Big Four move downmarket in hunt for growth","url":"https://www.ft.com/content/afff9e84-9b68-4a2f-a3f1-7729dec802b1","summary":"","digestN":168,"opinion":false},{"n":169,"source":"FT","section":"FT - Companies & Markets","author":"","headline":"JLR knew of faulty Range Rover part years before expanding recalls","url":"https://www.ft.com/content/f5efa77c-7159-42ec-a1a4-4744280e9326","summary":"","digestN":169,"opinion":false},{"n":170,"source":"FT","section":"FT - Companies & Markets","author":"","headline":"Why investors soured on the Democrats","url":"https://www.ft.com/content/f49c25d4-d77c-415d-b25b-5aaf7aaaac4a","summary":"","digestN":170,"opinion":false},{"n":171,"source":"FT","section":"FT - Companies & Markets","author":"","headline":"Blackstone doubles lock-up periods for some Asian investors","url":"https://www.ft.com/content/97215edc-736f-45f3-84ee-c1ae0c89493a","summary":"","digestN":171,"opinion":false},{"n":172,"source":"FT","section":"FT - Companies & Markets","author":"","headline":"So, about that Anthropic IPO . . .","url":"https://www.ft.com/content/2fbd60ee-060a-4957-b9c5-3b5a0ce88e1a","summary":"","digestN":172,"opinion":false},{"n":173,"source":"FT","section":"FT - Companies & Markets","author":"","headline":"Global stocks tumble as Democratic midterm sweep sparks AI rout","url":"https://www.ft.com/content/7c6ceb4f-d7b1-49ec-9047-0e2e4cd2615c","summary":"","digestN":173,"opinion":false},{"n":174,"source":"FT","section":"FT - Companies & Markets","author":"","headline":"Hedge fund Walleye hands back capital as it slims down equity business","url":"https://www.ft.com/content/fb02c333-a439-4acd-b0b6-e50633ce863e","summary":"","digestN":174,"opinion":false},{"n":175,"source":"FT","section":"FT - Companies & Markets - Opinion","author":"","headline":"The post-midterms playbook for America Inc","url":"https://www.ft.com/content/9e62d62b-a464-42fb-b425-553b2364fa98","summary":"","digestN":175,"opinion":true},{"n":176,"source":"FT","section":"FT - Companies & Markets - Opinion","author":"","headline":"Don’t bet on a ‘blue wave’ changing the economy","url":"https://www.ft.com/content/880c8ba8-2967-4d7a-87fb-d34135c676d8","summary":"","digestN":176,"opinion":true},{"n":177,"source":"FT","section":"FT - Companies & Markets - Opinion","author":"","headline":"China’s block on SoftBank deal fires the starting gun on the robot wars","url":"https://www.ft.com/content/77b31f52-0485-414b-be6a-198d71fabc1a","summary":"","digestN":177,"opinion":true},{"n":178,"source":"FT","section":"FT - Companies & Markets - Opinion","author":"","headline":"Tech leaders need an urgent rethink of their political strategy","url":"https://www.ft.com/content/6b64ea5b-48c3-474f-944b-845163db9b40","summary":"","digestN":178,"opinion":true},{"n":179,"source":"FT","section":"FT - Companies & Markets - Opinion","author":"","headline":"Will Democrats stall the AI boom?","url":"https://www.ft.com/content/5dedb9bf-bd12-4956-b2b7-ce968e1e1371","summary":"","digestN":179,"opinion":true},{"n":180,"source":"Reuters","section":"Reuters","author":"","headline":"Democrats planning flood of AI bills when they take control of Congress","url":"https://www.reuters.com/business/media-telecom/democrats-planning-flood-ai-bills-when-they-take-control-congress-2026-11-06/","summary":"","digestN":180,"opinion":false},{"n":181,"source":"Reuters","section":"Reuters","author":"","headline":"Tesla to wind down Cybertruck production at Texas factory as it struggles to win appeal","url":"https://www.reuters.com/business/autos-transportation/tesla-wind-down-cybertruck-production-texas-gigafactory-next-year-musk-says-2026-11-06/","summary":"","digestN":181,"opinion":false},{"n":182,"source":"Reuters","section":"Reuters","author":"","headline":"Airbnb lifts annual revenue growth forecast on resilient global travel demand","url":"https://www.reuters.com/business/airbnb-lifts-annual-revenue-growth-forecast-resilient-global-travel-demand-2026-11-05/","summary":"","digestN":182,"opinion":false},{"n":183,"source":"Reuters","section":"Reuters","author":"","headline":"US warns of 'ongoing cyber threat' to industrial refrigeration systems","url":"https://www.reuters.com/business/retail-consumer/us-warns-ongoing-cyber-threat-industrial-refrigeration-systems-2026-11-05/","summary":"","digestN":183,"opinion":false},{"n":184,"source":"Reuters","section":"Reuters","author":"","headline":"VIEW Canada's budget uses higher oil revenue to spend on tax incentives, infrastructure","url":"https://www.reuters.com/world/americas/view-canadas-budget-uses-higher-oil-revenue-spend-tax-incentives-infrastructure-2026-11-05/","summary":"","digestN":184,"opinion":false},{"n":185,"source":"Reuters","section":"Reuters","author":"","headline":"Bank of Canada keeps 2% inflation target","url":"https://www.reuters.com/world/americas/bank-canada-keeps-2-inflation-target-2026-11-05/","summary":"","digestN":185,"opinion":false},{"n":186,"source":"Reuters","section":"Reuters","author":"","headline":"Canada's Enbridge posts higher quarterly profit","url":"https://www.reuters.com/business/canadas-enbridge-posts-higher-quarterly-profit-2026-11-06/","summary":"","digestN":186,"opinion":false},{"n":187,"source":"CBC","section":"CBC","author":"","headline":"Carney's bet on economic growth — and the risks that come with it","url":"https://www.cbc.ca/news/business/armstrong-canada-budget-2026-economy-risks-9.7411557","summary":"","digestN":187,"opinion":false},{"n":188,"source":"CBC","section":"CBC","author":"","headline":"7 takeaways from the Carney government's 2nd budget","url":"https://www.cbc.ca/news/politics/highlights-federal-liberal-budget-2026-9.7411046","summary":"","digestN":188,"opinion":false},{"n":189,"source":"CBC","section":"CBC","author":"","headline":"AI stock sell-off sends the S&P 500 down 4.4% in worst day since April 2025","url":"https://www.cbc.ca/news/business/ai-stocks-markets-9.7411079","summary":"","digestN":189,"opinion":false},{"n":190,"source":"CBC","section":"CBC","author":"","headline":"U.S. midterms are a 'vindication' of Alberta's approach to tariffs, says Premier Smith","url":"https://www.cbc.ca/news/canada/edmonton/us-cda-midterms-alta-9.7410234","summary":"","digestN":190,"opinion":false},{"n":191,"source":"BBC","section":"BBC","author":"","headline":"PM tells firms to publish salaries in job adverts ahead of new law","url":"https://www.bbc.com/news/articles/cmd9343z3zw2o","summary":"","digestN":191,"opinion":false},{"n":192,"source":"BBC","section":"BBC","author":"","headline":"Global stocks plunge as fears over US AI slowdown spread to Asia and Europe","url":"https://www.bbc.com/news/articles/cmn04705rd8jo","summary":"","digestN":192,"opinion":false},{"n":193,"source":"BBC","section":"BBC","author":"","headline":"'I've taken an extra job to pay for heating oil'","url":"https://www.bbc.com/news/articles/cmj47j7e92gvo","summary":"","digestN":193,"opinion":false},{"n":194,"source":"BBC","section":"BBC","author":"","headline":"Tube drivers to stage strikes in Christmas run-up","url":"https://www.bbc.com/news/articles/ck7vpplgvrjqo","summary":"","digestN":194,"opinion":false},{"n":195,"source":"BBC","section":"BBC","author":"","headline":"Hoax bomb threats target European airlines and airports for second time in a week","url":"https://www.bbc.com/news/articles/cmpqg08nz3pqo","summary":"","digestN":195,"opinion":false},{"n":196,"source":"CCentral","section":"Trade journals — Cdn retail & consumer","author":"","headline":"Drop some 'Fbombz' for the holidays","url":"https://ccentral.ca/drop-some-fbombz-holidays","summary":"","digestN":196,"opinion":false,"published":"2026-11-06T00:58:49+00:00","tradeExcerpt":"United Craft offers two new seasonal additions to their Fbombz line of RTD cocktails.","navGroup":"Trade journals — Cdn retail & consumer","navLabel":"Trade journals"},{"n":197,"source":"Retail Insider","section":"Trade journals — Cdn retail & consumer","author":"","headline":"Apple’s AI Strategy Is Reshaping Its Hardware and Services Economics","url":"https://retail-insider.com/retail-insider/2026/11/apples-ai-strategy-is-reshaping-its-hardware-and-services-economics/","summary":"","digestN":197,"opinion":false,"published":"2026-11-05T18:39:19+00:00","tradeExcerpt":"Apple generated US$478.8 billion in fiscal 2026 revenue as rising memory prices and AI computing costs put pressure on margins. Its strategy includes paid AI services, enterprise applications and new advertising opportunities for Canadian retailers.","navGroup":"Trade journals — Cdn retail & consumer","navLabel":"Trade journals"},{"n":198,"source":"Retail Insider","section":"Trade journals — Cdn retail & consumer","author":"","headline":"Apple Raises Canadian iPhone, Mac and iPad Prices as Memory Costs Surge","url":"https://retail-insider.com/bulletin/2026/11/apple-raises-canadian-iphone-mac-and-ipad-prices-as-memory-costs-surge/","summary":"","digestN":198,"opinion":false,"published":"2026-11-05T18:19:51+00:00","tradeExcerpt":"Apple has increased Canadian prices on existing iPhone, Mac and iPad models as memory costs climb. Its latest results show strong revenue, but management says the impact on consumer demand remains unclear.","navGroup":"Trade journals — Cdn retail & consumer","navLabel":"Trade journals"},{"n":199,"source":"Retail Insider","section":"Trade journals — Cdn retail & consumer","author":"","headline":"Apple Maps Advertising Goes Live in Canada, Giving Retailers Another Way to Reach Shoppers","url":"https://retail-insider.com/bulletin/2026/11/apple-maps-advertising-goes-live-in-canada-giving-retailers-another-way-to-reach-shoppers/","summary":"","digestN":199,"opinion":false,"published":"2026-11-05T18:06:30+00:00","tradeExcerpt":"Apple Maps advertising is now live in Canada, giving retailers and local businesses paid visibility in Maps searches. The new placements offer another way to reach nearby shoppers, although campaign costs and measurable sales results will determine their value.","navGroup":"Trade journals — Cdn retail & consumer","navLabel":"Trade journals"}]};
+    const $ = (id) => document.getElementById(id);
+    const state = { stories: [], i: 0, selected: new Set() };
+
+    // --- localStorage persistence (keyed by digest day; soft-fail if blocked) ---
+    const PERSIST_PREFIX = 'digest-deck:';
+    function persistKey(date) {
+      const d = String(date || '').trim();
+      return d ? (PERSIST_PREFIX + d) : '';
+    }
+    function digestDayDate() {
+      if (typeof INLINE_DATA !== 'undefined' && INLINE_DATA && INLINE_DATA.date) return String(INLINE_DATA.date);
+      const m = (location.pathname || '').match(/\/d\/(\d{4}-\d{2}-\d{2})\//);
+      return m ? m[1] : '';
+    }
+    function loadPersistedState(date) {
+      const key = persistKey(date);
+      if (!key) return null;
+      try {
+        const raw = localStorage.getItem(key);
+        if (!raw) return null;
+        const data = JSON.parse(raw);
+        return (data && typeof data === 'object') ? data : null;
+      } catch (_) {
+        return null;
+      }
+    }
+    function savePersistedState() {
+      const date = digestDayDate();
+      const key = persistKey(date);
+      if (!key) return;
+      try {
+        const s = (typeof current === 'function') ? current() : null;
+        const payload = {
+          selected: [...state.selected].map(Number).filter(Number.isFinite),
+          i: state.i,
+          n: (s && s.n != null) ? s.n : null,
+          digestN: (s && s.digestN != null) ? s.digestN : null,
+        };
+        localStorage.setItem(key, JSON.stringify(payload));
+      } catch (_) {
+        // private mode / quota — deck still works without persistence
+      }
+    }
+    function restorePersistedState() {
+      const date = digestDayDate();
+      if (!date) return;
+      const data = loadPersistedState(date);
+      if (!data) return;
+      try {
+        const valid = new Set(state.stories.map(s => s.n));
+        const nums = Array.isArray(data.selected) ? data.selected : [];
+        state.selected = new Set(nums.map(Number).filter(n => valid.has(n)));
+      } catch (_) {}
+      // URL jump (#N / ?n=) wins over saved card position
+      if (typeof parseJumpTarget === 'function' && parseJumpTarget()) return;
+      let idx = -1;
+      if (data.digestN != null && typeof indexForNumber === 'function') idx = indexForNumber(data.digestN);
+      if (idx < 0 && data.n != null) idx = state.stories.findIndex(s => s.n === data.n);
+      if (idx < 0 && Number.isFinite(Number(data.i))) {
+        idx = Math.max(0, Math.min(state.stories.length - 1, Number(data.i)));
+      }
+      if (idx >= 0) state.i = idx;
+    }
+    window.addEventListener('pagehide', () => { try { savePersistedState(); } catch (_) {} });
+
+    const card = $('card');
+    const stage = $('stage');
+    const toastEl = $('toast');
+
+    function toast(msg) {
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      clearTimeout(toastEl._t);
+      toastEl._t = setTimeout(() => toastEl.classList.remove('show'), 1800);
+    }
+
+    function current() {
+      return state.stories[state.i] || null;
+    }
+
+    function renderSelected() {
+      const nums = [...state.selected].map(n => {
+        const st = state.stories.find(x => x.n === n);
+        return (st && st.digestN != null) ? st.digestN : n;
+      }).sort((a,b)=>a-b);
+      $('btnCopy').textContent = nums.length
+        ? `Copy brief list (${nums.length})`
+        : 'Copy brief list';
+      $('selectedList').textContent = nums.length
+        ? `Selected: ${nums.join(', ')} — paste into News Headlines chat for detailed briefs.`
+        : 'No stories selected for briefing yet.';
+      const clearBtn = $('btnClear');
+      if (clearBtn) clearBtn.disabled = !nums.length;
+      const brief = card.querySelector('[data-brief]');
+      const s = current();
+      if (brief && s) {
+        const on = state.selected.has(s.n);
+        brief.classList.toggle('on', on);
+        brief.textContent = on ? 'Selected ✓' : 'Brief me';
+      }
+      const pillHost = card.querySelector('[data-meta]');
+      if (pillHost && s) {
+        const existing = pillHost.querySelector('.pill.selected');
+        const on = state.selected.has(s.n);
+        if (on && !existing) {
+          const p = document.createElement('span');
+          p.className = 'pill selected';
+          p.textContent = 'For brief';
+          pillHost.appendChild(p);
+        } else if (!on && existing) existing.remove();
+      }
+    }
+
+    function updateChrome() {
+      if (typeof syncSectionSelect === 'function') syncSectionSelect();
+      const total = state.stories.length || 1;
+      const i = state.i;
+      $('progressFill').style.width = (((i + 1) / total) * 100) + '%';
+      $('progressLabel').textContent = `${i + 1} / ${total}`;
+      const s = current();
+      const jump = $('jumpN');
+      if (jump && document.activeElement !== jump) {
+        const num = s && s.digestN != null ? s.digestN : (s ? s.n : '');
+        jump.value = num === '' ? '' : String(num);
+        jump.max = String(total);
+      }
+      if (s) {
+        document.title = `${s.source}: ${s.headline} · Headlines`;
+        const hashNum = s.digestN != null ? s.digestN : s.n;
+        const want = '#' + hashNum;
+        if (location.hash !== want) {
+          history.replaceState(null, '', want);
+        }
+      }
+      renderSelected();
+      if (typeof savePersistedState === 'function') savePersistedState();
+    }
+
+    function paintCard() {
+      const s = current();
+      card.innerHTML = '';
+      if (!s) return;
+
+      const top = document.createElement('div');
+      top.className = 'card-top';
+      const srcBlock = document.createElement('div');
+      srcBlock.className = 'source-block';
+      const source = document.createElement('h2');
+      source.className = 'source';
+      source.textContent = s.source || 'Source';
+      srcBlock.appendChild(source);
+      const isGlobe = /globe/i.test(String(s.source || ''));
+      // Non-Globe: keep author under source when present. Globe authors render in the opinion-tab meta row.
+      if (s.author && !isGlobe) {
+        // Section label removed from cards (see top-bar section dropdown); author only.
+        const row = document.createElement('div');
+        row.className = 'section-row';
+        const au = document.createElement('div');
+        au.className = 'author';
+        au.textContent = s.author;
+        row.appendChild(au);
+        srcBlock.appendChild(row);
+      }
+      top.appendChild(srcBlock);
+      const dig = document.createElement('div');
+      dig.className = 'digest';
+      dig.textContent = s.digestN != null ? `Digest #${s.digestN}` : `#${s.n}`;
+      top.appendChild(dig);
+      card.appendChild(top);
+
+      const h = document.createElement('h1');
+      h.className = 'headline';
+      h.textContent = s.headline;
+      card.appendChild(h);
+
+      const sum = document.createElement('p');
+      sum.className = 'summary';
+      sum.textContent = s.summary || 'Open the story, or tap Brief me and copy the list back into chat.';
+      card.appendChild(sum);
+
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      meta.dataset.meta = '1';
+      if (s.opinion) {
+        const p = document.createElement('span');
+        p.className = 'pill opinion';
+        p.textContent = 'Opinion';
+        meta.appendChild(p);
+      }
+      // Globe synopsis cards: author sits in the opinion-tab area (beside Opinion, or in that spot if not opinion).
+      if (isGlobe && s.author) {
+        const p = document.createElement('span');
+        p.className = 'pill author-pill';
+        p.textContent = s.author;
+        meta.appendChild(p);
+      }
+      if (s.featured) {
+        const p = document.createElement('span');
+        p.className = 'pill featured';
+        p.textContent = s.featured;
+        meta.appendChild(p);
+      }
+      card.appendChild(meta);
+
+      const open = document.createElement('a');
+      open.className = 'open';
+      open.href = s.url;
+      open.target = '_blank';
+      open.rel = 'noopener noreferrer';
+      open.textContent = 'Open article →';
+      open.addEventListener('click', (e) => openExternal(s.url, e));
+      card.appendChild(open);
+
+      const actions = document.createElement('div');
+      actions.className = 'actions';
+      const skip = document.createElement('button');
+      skip.type = 'button';
+      skip.textContent = 'Skip';
+      skip.addEventListener('click', () => go(1));
+      const brief = document.createElement('button');
+      brief.type = 'button';
+      brief.className = 'good';
+      brief.dataset.brief = '1';
+      brief.textContent = 'Brief me';
+      brief.addEventListener('click', () => toggleBrief(s.n));
+      actions.appendChild(skip);
+      actions.appendChild(brief);
+      card.appendChild(actions);
+
+      card.style.transform = 'translateX(0)';
+      card.style.opacity = '1';
+      updateChrome();
+    }
+
+
+    // Publisher apps (esp. Globe) claim https links via App Links / Universal Links
+    // and then fail to load. Prefer the browser the user already has signed-in.
+    function openExternal(url, e) {
+      if (e) e.preventDefault();
+      if (!url) return;
+      const ua = navigator.userAgent || '';
+      if (/Android/i.test(ua)) {
+        try {
+          const u = new URL(url);
+          const intentUrl =
+            'intent://' + u.host + u.pathname + u.search + u.hash +
+            '#Intent;scheme=https;package=com.android.chrome;' +
+            'S.browser_fallback_url=' + encodeURIComponent(url) + ';end';
+          window.location.href = intentUrl;
+          return;
+        } catch (_) {}
+      }
+      if (/iPhone|iPad|iPod/i.test(ua)) {
+        window.open(siteUrl('open.html?u=') + encodeURIComponent(url), '_blank', 'noopener,noreferrer');
+        return;
+      }
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+
+    function go(delta) {
+      if (!state.stories.length) return;
+      const next = Math.max(0, Math.min(state.stories.length - 1, state.i + delta));
+      if (next === state.i) {
+        // bounce
+        card.style.transform = `translateX(${delta < 0 ? 12 : -12}px)`;
+        setTimeout(() => { card.style.transform = 'translateX(0)'; }, 120);
+        return;
+      }
+      const dir = next > state.i ? -1 : 1;
+      card.style.transform = `translateX(${dir * 28}px)`;
+      card.style.opacity = '0.35';
+      setTimeout(() => {
+        state.i = next;
+        paintCard();
+      }, 120);
+    }
+
+    function indexForNumber(num) {
+      const n = Number(num);
+      if (!Number.isFinite(n) || n < 1) return -1;
+      let idx = state.stories.findIndex(s => s.digestN === n);
+      if (idx < 0) idx = state.stories.findIndex(s => s.n === n);
+      return idx;
+    }
+
+    function goToNumber(num, { silent } = {}) {
+      const idx = indexForNumber(num);
+      if (idx < 0) {
+        if (!silent) toast(`No story #${num}`);
+        return false;
+      }
+      if (idx === state.i) {
+        paintCard();
+        return true;
+      }
+      card.style.transform = 'translateX(0)';
+      card.style.opacity = '0.35';
+      setTimeout(() => {
+        state.i = idx;
+        paintCard();
+      }, 80);
+      return true;
+    }
+
+    function parseJumpTarget() {
+      const params = new URLSearchParams(location.search);
+      const q = params.get('n') || params.get('story') || params.get('go');
+      if (q) return q;
+      const h = (location.hash || '').replace(/^#/, '').trim();
+      if (/^\d+$/.test(h)) return h;
+      const m = h.match(/^(?:n|story|go)=(\d+)$/i);
+      return m ? m[1] : null;
+    }
+
+    function toggleBrief(n) {
+      if (state.selected.has(n)) state.selected.delete(n);
+      else state.selected.add(n);
+      const st = state.stories.find(x => x.n === n);
+      const label = (st && st.digestN != null) ? st.digestN : n;
+      toast(state.selected.has(n) ? `Added #${label}` : `Removed #${label}`);
+      renderSelected();
+      if (typeof savePersistedState === 'function') savePersistedState();
+    }
+
+    async function copyList() {
+      const nums = [...state.selected].map(n => {
+        const st = state.stories.find(x => x.n === n);
+        return (st && st.digestN != null) ? st.digestN : n;
+      }).sort((a,b)=>a-b);
+      if (!nums.length) {
+        toast('Select at least one story first');
+        return;
+      }
+      const text = nums.join(', ');
+      try {
+        await navigator.clipboard.writeText(text);
+        toast(`Copied: ${text}`);
+      } catch {
+        prompt('Copy these numbers into News Headlines chat:', text);
+      }
+    }
+
+    function clearBriefList() {
+      if (!state.selected.size) {
+        toast('Nothing selected');
+        return;
+      }
+      const n = state.selected.size;
+      if (!confirm(`Clear ${n} selected ${n === 1 ? 'story' : 'stories'}? This can't be undone.`)) {
+        return;
+      }
+      state.selected = new Set();
+      renderSelected();
+      if (typeof savePersistedState === 'function') savePersistedState();
+      toast('Cleared brief list');
+    }
+
+    $('btnNext').onclick = () => go(1);
+    $('btnPrev').onclick = () => go(-1);
+    $('btnCopy').onclick = copyList;
+    if ($('btnClear')) $('btnClear').onclick = clearBriefList;
+    $('jumpForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const v = $('jumpN').value.trim();
+      if (!v) return;
+      goToNumber(v);
+      $('jumpN').blur();
+    });
+    $('progressLabel').addEventListener('click', () => {
+      const el = $('jumpN');
+      el.focus();
+      el.select();
+    });
+
+    window.addEventListener('hashchange', () => {
+      const t = parseJumpTarget();
+      if (t) goToNumber(t, { silent: true });
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+      if (e.key === 'ArrowRight' || e.key === 'j') go(1);
+      if (e.key === 'ArrowLeft' || e.key === 'k') go(-1);
+      if (e.key === 'g' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        const el = $('jumpN');
+        el.focus();
+        el.select();
+      }
+      if (e.key === ' ' || e.key === 'b') {
+        e.preventDefault();
+        const s = current();
+        if (s) toggleBrief(s.n);
+      }
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) copyList();
+    });
+
+    // Pointer swipe on the stage (works for touch + mouse).
+    // Left = next, right = previous. Use the dominant peak travel of the
+    // gesture (not the release point) with a moderate equal threshold so
+    // both directions actually commit.
+    // When the summary is long enough to scroll, touch-action:pan-y keeps
+    // vertical scrolling, and once the gesture locks to horizontal we freeze
+    // that scroll so the deck swipe can take over.
+    let drag = null;
+    const SWIPE_MIN = 48;
+    function summaryEl() {
+      return card.querySelector('.summary');
+    }
+    function freezeSummaryScroll(freeze) {
+      const sum = summaryEl();
+      if (!sum) return;
+      if (freeze) {
+        if (sum.dataset.scrollFrozen === '1') return;
+        sum.dataset.scrollFrozen = '1';
+        sum.dataset.prevOverflowY = sum.style.overflowY || '';
+        sum.dataset.prevTouchAction = sum.style.touchAction || '';
+        sum.style.overflowY = 'hidden';
+        sum.style.touchAction = 'none';
+      } else if (sum.dataset.scrollFrozen === '1') {
+        sum.style.overflowY = sum.dataset.prevOverflowY || '';
+        sum.style.touchAction = sum.dataset.prevTouchAction || '';
+        delete sum.dataset.scrollFrozen;
+        delete sum.dataset.prevOverflowY;
+        delete sum.dataset.prevTouchAction;
+      }
+    }
+    stage.addEventListener('pointerdown', (e) => {
+      if (e.target.closest('button, a, input, form')) return;
+      drag = {
+        id: e.pointerId, x: e.clientX, y: e.clientY,
+        moved: false, axis: null, maxRight: 0, maxLeft: 0
+      };
+      card.classList.add('dragging');
+      try { stage.setPointerCapture(e.pointerId); } catch (_) {}
+    }, true);
+    stage.addEventListener('pointermove', (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const dx = e.clientX - drag.x;
+      const dy = e.clientY - drag.y;
+      if (dx > drag.maxRight) drag.maxRight = dx;
+      if (-dx > drag.maxLeft) drag.maxLeft = -dx;
+      if (!drag.axis) {
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+        drag.axis = Math.abs(dx) >= Math.abs(dy) ? 'x' : 'y';
+        if (drag.axis === 'x') freezeSummaryScroll(true);
+      }
+      if (drag.axis !== 'x') return;
+      drag.moved = true;
+      e.preventDefault();
+      card.style.transform = `translateX(${dx}px)`;
+      card.style.opacity = String(Math.max(0.35, 1 - Math.abs(dx) / 280));
+    }, { passive: false, capture: true });
+    function endDrag(e) {
+      if (!drag || e.pointerId !== drag.id) return;
+      const maxR = drag.maxRight;
+      const maxL = drag.maxLeft;
+      const moved = drag.moved;
+      drag = null;
+      freezeSummaryScroll(false);
+      card.classList.remove('dragging');
+      if (!moved) {
+        card.style.transform = 'translateX(0)';
+        card.style.opacity = '1';
+        return;
+      }
+      // Dominant direction by peak distance; same threshold both ways.
+      if (maxR >= SWIPE_MIN && maxR >= maxL) {
+        go(-1); // right → previous
+        return;
+      }
+      if (maxL >= SWIPE_MIN && maxL > maxR) {
+        go(1); // left → next
+        return;
+      }
+      card.style.transform = 'translateX(0)';
+      card.style.opacity = '1';
+    }
+    stage.addEventListener('pointerup', endDrag, true);
+    stage.addEventListener('pointercancel', endDrag, true);
+    // iOS: native scroll on .summary can ignore pointer preventDefault unless
+    // touchmove is non-passive once the gesture is locked horizontal.
+    stage.addEventListener('touchmove', (e) => {
+      if (!drag || drag.axis !== 'x') return;
+      e.preventDefault();
+    }, { passive: false, capture: true });
+
+
+    function boot(data) {
+      if (!data || !data.stories || !data.stories.length) throw new Error('empty stories');
+      state.stories = data.stories;
+      state.i = 0;
+      state.selected = new Set();
+      if (typeof restorePersistedState === 'function') restorePersistedState();
+      if (data.date) $('brand').textContent = 'Headlines deck · ' + String(data.date).replace(/^\d{4}-(\d{2})-(\d{2})$/, (_,m,d) => {
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        return months[Number(m)-1] + ' ' + Number(d);
+      });
+      if (data.title) $('hint').textContent = data.title + ' · swipe or Go #';
+      if (data.note) $('selectedList').textContent = data.note;
+      const jumpTarget = parseJumpTarget();
+      if (jumpTarget) {
+        const idx = indexForNumber(jumpTarget);
+        if (idx >= 0) state.i = idx;
+      }
+      paintCard();
+    }
+
+
+    // --- Day switcher: base-relative (works at / on Netlify and /<repo>/ on GitHub Pages) ---
+    // siteBase(): site root path ending in '/', derived from location (strips /d/YYYY-MM-DD/...).
+    function siteBase() {
+      let p = location.pathname || '/';
+      const m = p.match(/^(.*\/)d\/\d{4}-\d{2}-\d{2}(\/.*)?$/);
+      if (m) return m[1];
+      return p.replace(/[^\/]*$/, '') || '/';
+    }
+    function siteUrl(rel) {
+      return siteBase() + String(rel || '').replace(/^\.?\//, '');
+    }
+
+    function formatDayLabel(iso, isLatest) {
+      const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (!m) return iso || '';
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const short = months[Number(m[2]) - 1] + ' ' + Number(m[3]);
+      return isLatest ? ('Today · ' + short) : short;
+    }
+
+    function detectCurrentDayDate() {
+      if (INLINE_DATA && INLINE_DATA.date) return String(INLINE_DATA.date);
+      const m = location.pathname.match(/\/d\/(\d{4}-\d{2}-\d{2})\//);
+      return m ? m[1] : '';
+    }
+
+    async function initDaySwitcher() {
+      const sel = document.getElementById('daySelect');
+      if (!sel) return;
+      let days = [];
+      try {
+        const res = await fetch(siteUrl('days.json'), { cache: 'no-store' });
+        if (res.ok) days = await res.json();
+      } catch (_) {}
+      if (!Array.isArray(days) || !days.length) {
+        const d = detectCurrentDayDate();
+        if (d) {
+          days = [{ date: d, label: formatDayLabel(d, true), path: './', latest: true }];
+        } else {
+          sel.closest('.day-row')?.setAttribute('hidden', '');
+          return;
+        }
+      }
+      const current = detectCurrentDayDate();
+      sel.innerHTML = '';
+      days.forEach((entry, i) => {
+        const opt = document.createElement('option');
+        const isLatest = !!(entry.latest || i === 0);
+        // days.json paths are relative to the site base ('./' or 'd/DATE/'); legacy '/'-rooted ones also OK.
+        opt.value = siteUrl(entry.path || (isLatest ? './' : ('d/' + entry.date + '/')));
+        opt.textContent = entry.label || formatDayLabel(entry.date, isLatest);
+        opt.dataset.date = entry.date || '';
+        if (entry.date && entry.date === current) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      if (![...sel.options].some(o => o.selected) && sel.options.length) {
+        sel.options[0].selected = true;
+      }
+      sel.addEventListener('change', () => {
+        if (typeof savePersistedState === 'function') savePersistedState();
+        const path = sel.value || siteBase();
+        // Navigate to day's index; drop hash so jump deep-links don't carry over.
+        location.href = path;
+      });
+    }
+    initDaySwitcher();
+
+
+    // --- Section switcher: options built from the stories (contiguous source/section runs, digest order).
+    // Stories carrying a navGroup (e.g. the pinned "Coverage & consumer health" block) form ONE group
+    // regardless of source, labelled navLabel || NAV_LABELS[navGroup] || navGroup. Days without navGroup
+    // keep the plain source/section runs.
+    // Choosing one jumps to that section's first story via goToNumber() (same as Go box / #N).
+    const SECTION_SHORT = { 'The Globe and Mail': 'Globe', 'The Wall Street Journal': 'WSJ', 'Financial Times': 'FT' };
+    const NAV_LABELS = { 'Coverage & consumer health': 'Coverage & consumer' };
+    const sectionNav = { built: false, groups: [], byIndex: [] };
+    function navGroupOf(s) { return String((s && s.navGroup) || '').trim(); }
+    function navLabelFor(s) {
+      const g = navGroupOf(s);
+      return String((s && s.navLabel) || '').trim() || NAV_LABELS[g] || g;
+    }
+    function sectionLabelFor(s) {
+      const sec = String((s && s.section) || '').trim();
+      const src = String((s && s.source) || '').trim();
+      const short = SECTION_SHORT[src] || src;
+      if (!sec) return short || 'Other';
+      if (!short) return sec;
+      const low = sec.toLowerCase();
+      if (low.includes(short.toLowerCase()) || low.includes(src.toLowerCase())) return sec;
+      return short + ' — ' + sec;
+    }
+    function storyNumber(s, i) {
+      if (s && s.digestN != null) return s.digestN;
+      if (s && s.n != null) return s.n;
+      return i + 1;
+    }
+    function buildSectionSelect() {
+      const sel = document.getElementById('sectionSelect');
+      if (!sel || !state.stories.length) return false;
+      const groups = [];
+      const byIndex = [];
+      let prevKey = null;
+      state.stories.forEach((s, i) => {
+        const nav = navGroupOf(s);
+        const key = nav ? ('\u0002nav\u0001' + nav)
+          : (String((s && s.source) || '') + '\u0001' + String((s && s.section) || ''));
+        if (key !== prevKey) {
+          groups.push({ label: nav ? navLabelFor(s) : sectionLabelFor(s), start: i, first: storyNumber(s, i), last: storyNumber(s, i) });
+          prevKey = key;
+        }
+        const g = groups[groups.length - 1];
+        g.last = storyNumber(s, i);
+        byIndex.push(groups.length - 1);
+      });
+      sel.innerHTML = '';
+      groups.forEach((g, gi) => {
+        const opt = document.createElement('option');
+        opt.value = String(gi);
+        opt.textContent = g.label + ' (' + (g.first === g.last ? g.first : (g.first + '\u2013' + g.last)) + ')';
+        sel.appendChild(opt);
+      });
+      sectionNav.groups = groups;
+      sectionNav.byIndex = byIndex;
+      sectionNav.built = true;
+      if (groups.length < 2) sel.closest('.section-bar')?.setAttribute('hidden', '');
+      sel.addEventListener('change', () => {
+        const g = sectionNav.groups[Number(sel.value)];
+        sel.blur();
+        if (!g) return;
+        if (!goToNumber(g.first, { silent: true })) {
+          // Fallback: index-in-place if the number lookup fails
+          state.i = g.start;
+          paintCard();
+        }
+      });
+      // Keep arrow / letter keys inside the select from also driving the deck shortcuts.
+      sel.addEventListener('keydown', (e) => e.stopPropagation());
+      return true;
+    }
+    function syncSectionSelect() {
+      if (!sectionNav.built && !buildSectionSelect()) return;
+      const sel = document.getElementById('sectionSelect');
+      const gi = sectionNav.byIndex[state.i];
+      if (sel && gi != null && sel.value !== String(gi)) sel.value = String(gi);
+    }
+
+    try { boot(INLINE_DATA); }
+    catch (err) {
+      $('hint').textContent = String(err.message || err);
+    }
+  </script>
+</body>
+</html>
