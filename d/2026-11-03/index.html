@@ -759,6 +759,10 @@
         toast('Nothing selected');
         return;
       }
+      const n = state.selected.size;
+      if (!confirm(`Clear ${n} selected ${n === 1 ? 'story' : 'stories'}? This can't be undone.`)) {
+        return;
+      }
       state.selected = new Set();
       renderSelected();
       if (typeof savePersistedState === 'function') savePersistedState();
