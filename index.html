@@ -363,6 +363,133 @@
       white-space: nowrap;
     }
 
+
+    /* Titles view — compact headline scan, last option in the section dropdown */
+    .titles-pane {
+      display: none;
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+    }
+    .titles-pane:not([hidden]) { display: block; }
+    body.titles-mode .app {
+      height: 100%;
+      max-height: 100dvh;
+      overflow: hidden;
+    }
+    body.titles-mode #stage { display: none !important; }
+    body.titles-mode .dock .ghost { display: none; }
+    body.titles-mode .dock .primary { flex: 1 1 auto; }
+    @media (min-width: 720px) {
+      body.titles-mode .app { max-width: 680px; }
+    }
+    .titles-h {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      padding: 10px 12px 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+      background: #f8fafc;
+      border-bottom: 1px solid var(--line);
+    }
+    .titles-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      width: 100%;
+      margin: 0;
+      padding: 10px 8px 10px 12px;
+      min-height: 48px;
+      border: 0;
+      border-bottom: 1px solid var(--line);
+      background: transparent;
+      color: var(--text);
+      font-family: inherit;
+      text-align: left;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+    .titles-row:last-child { border-bottom: 0; }
+    .titles-row:active { background: rgba(15, 23, 42, 0.04); }
+    .titles-row.is-selected { background: var(--good); }
+    .titles-row:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: -2px; }
+    .titles-mark {
+      flex: 0 0 auto;
+      width: 18px;
+      height: 18px;
+      margin-top: 2px;
+      border-radius: 999px;
+      border: 2px solid rgba(15, 23, 42, 0.18);
+      background: #fff;
+    }
+    .titles-row.is-selected .titles-mark {
+      border-color: #166534;
+      background: #166534;
+      box-shadow: inset 0 0 0 3px var(--good);
+    }
+    .titles-num {
+      flex: 0 0 auto;
+      min-width: 2.5em;
+      margin-top: 1px;
+      font-size: 12px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: var(--muted);
+    }
+    .titles-row.is-selected .titles-num { color: var(--good-text); }
+    .titles-headline {
+      flex: 1 1 auto;
+      min-width: 0;
+      font-size: 14px;
+      font-weight: 650;
+      line-height: 1.3;
+      letter-spacing: -0.01em;
+    }
+    .titles-badge {
+      flex: 0 1 auto;
+      max-width: 76px;
+      margin-top: 3px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: var(--muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .titles-open {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      margin: -4px 0 -4px 0;
+      padding: 0;
+      border: 0;
+      border-radius: 10px;
+      background: rgba(15, 23, 42, 0.05);
+      color: var(--accent);
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+    .titles-open:active { transform: scale(0.96); background: var(--accent-soft); }
+    .titles-open:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 1px; }
+
+
   </style>
 </head>
 <body>
@@ -505,6 +632,7 @@
         : 'No stories selected for briefing yet.';
       const clearBtn = $('btnClear');
       if (clearBtn) clearBtn.disabled = !nums.length;
+      if (typeof syncTitlesSelection === 'function') syncTitlesSelection();
       const brief = card.querySelector('[data-brief]');
       const s = current();
       if (brief && s) {
@@ -993,10 +1121,14 @@
     // Stories carrying a navGroup (e.g. the pinned "Coverage & consumer health" block) form ONE group
     // regardless of source, labelled navLabel || NAV_LABELS[navGroup] || navGroup. Days without navGroup
     // keep the plain source/section runs.
-    // Choosing one jumps to that section's first story via goToNumber() (same as Go box / #N).
+    // Choosing a section jumps to that section's first story via goToNumber() (same as Go box / #N).
+    // "Titles" is always the last option: a compact, scrollable headline list of every story that day.
     const SECTION_SHORT = { 'The Globe and Mail': 'Globe', 'The Wall Street Journal': 'WSJ', 'Financial Times': 'FT' };
     const NAV_LABELS = { 'Coverage & consumer health': 'Coverage & consumer' };
-    const sectionNav = { built: false, groups: [], byIndex: [] };
+    const TITLES_VALUE = 'titles';
+    const HINT_CARDS = 'Swipe \u2190 / \u2192 \u00b7 Go # \u00b7 Brief me \u00b7 Copy list \u00b7 Clear';
+    const HINT_TITLES = 'Tap a headline to select \u00b7 Open to read the article \u00b7 Copy list \u00b7 Clear';
+    const sectionNav = { built: false, groups: [], byIndex: [], titlesMode: false, _titlesHooks: false };
     function navGroupOf(s) { return String((s && s.navGroup) || '').trim(); }
     function navLabelFor(s) {
       const g = navGroupOf(s);
@@ -1010,16 +1142,184 @@
       if (!short) return sec;
       const low = sec.toLowerCase();
       if (low.includes(short.toLowerCase()) || low.includes(src.toLowerCase())) return sec;
-      return short + ' — ' + sec;
+      return short + ' \u2014 ' + sec;
+    }
+    function sourceBadgeFor(s) {
+      const src = String((s && s.source) || '').trim();
+      return SECTION_SHORT[src] || src || '';
     }
     function storyNumber(s, i) {
       if (s && s.digestN != null) return s.digestN;
       if (s && s.n != null) return s.n;
       return i + 1;
     }
+    function ensureTitlesPane() {
+      let pane = document.getElementById('titlesPane');
+      if (pane) return pane;
+      pane = document.createElement('div');
+      pane.id = 'titlesPane';
+      pane.className = 'titles-pane';
+      pane.setAttribute('hidden', '');
+      pane.setAttribute('aria-label', 'Headline titles');
+      const stageEl = document.getElementById('stage');
+      if (stageEl && stageEl.parentNode) stageEl.parentNode.insertBefore(pane, stageEl.nextSibling);
+      else document.querySelector('.app')?.appendChild(pane);
+      return pane;
+    }
+    function titleRowFor(s, i) {
+      const n = s && s.n;
+      const num = storyNumber(s, i);
+      const row = document.createElement('div');
+      row.className = 'titles-row';
+      row.dataset.n = String(n);
+      row.setAttribute('role', 'checkbox');
+      row.setAttribute('tabindex', '0');
+      row.setAttribute('aria-checked', 'false');
+      const mark = document.createElement('span');
+      mark.className = 'titles-mark';
+      mark.setAttribute('aria-hidden', 'true');
+      const numEl = document.createElement('span');
+      numEl.className = 'titles-num';
+      numEl.textContent = '#' + num;
+      const head = document.createElement('span');
+      head.className = 'titles-headline';
+      head.textContent = (s && s.headline) || '';
+      const badge = document.createElement('span');
+      badge.className = 'titles-badge';
+      const badgeBits = [];
+      const src = sourceBadgeFor(s);
+      if (src) badgeBits.push(src);
+      if (s && s.opinion) badgeBits.push('Op');
+      badge.textContent = badgeBits.join(' \u00b7 ');
+      if (!badge.textContent) badge.hidden = true;
+      const open = document.createElement('button');
+      open.type = 'button';
+      open.className = 'titles-open';
+      open.setAttribute('aria-label', 'Open article in a new tab');
+      open.title = 'Open article';
+      open.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M6.2 3h6.8v6.8h-1.6V5.73L4.53 12.6l-1.13-1.13 6.87-6.87H6.2V3z"/></svg>';
+      open.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (s && s.url) openExternal(s.url, e);
+        else toast('No link for this story');
+      });
+      row.appendChild(mark);
+      row.appendChild(numEl);
+      row.appendChild(head);
+      row.appendChild(badge);
+      row.appendChild(open);
+      row.addEventListener('click', (e) => {
+        if (e.target.closest('.titles-open')) return;
+        toggleBrief(n);
+      });
+      row.addEventListener('keydown', (e) => {
+        if (e.target.closest('.titles-open')) return;
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          toggleBrief(n);
+        }
+      });
+      return row;
+    }
+    function renderTitlesList() {
+      const pane = ensureTitlesPane();
+      pane.innerHTML = '';
+      const frag = document.createDocumentFragment();
+      const groups = sectionNav.groups || [];
+      groups.forEach((g, gi) => {
+        const h = document.createElement('div');
+        h.className = 'titles-h';
+        h.textContent = g.label || 'Section';
+        frag.appendChild(h);
+        const end = groups[gi + 1] ? groups[gi + 1].start : state.stories.length;
+        for (let i = g.start; i < end; i++) frag.appendChild(titleRowFor(state.stories[i], i));
+      });
+      pane.appendChild(frag);
+      syncTitlesSelection();
+      pane.scrollTop = 0;
+    }
+    function syncTitlesSelection() {
+      const pane = document.getElementById('titlesPane');
+      if (pane && !pane.hidden) {
+        pane.querySelectorAll('.titles-row').forEach((row) => {
+          const on = state.selected.has(Number(row.dataset.n));
+          row.classList.toggle('is-selected', on);
+          row.setAttribute('aria-checked', on ? 'true' : 'false');
+        });
+      }
+      if (sectionNav.titlesMode) updateTitlesChrome();
+    }
+    function updateTitlesChrome() {
+      if (!sectionNav.titlesMode) return;
+      const total = state.stories.length;
+      const nSel = state.selected.size;
+      const fill = $('progressFill');
+      const lab = $('progressLabel');
+      if (fill) fill.style.width = '100%';
+      if (lab) lab.textContent = nSel ? ('Titles \u00b7 ' + total + ' \u00b7 ' + nSel + ' selected') : ('Titles \u00b7 ' + total);
+      document.title = 'Titles \u00b7 Headlines';
+      const hint = $('hint');
+      if (hint) hint.textContent = HINT_TITLES;
+    }
+    function enterTitlesView() {
+      sectionNav.titlesMode = true;
+      const sel = document.getElementById('sectionSelect');
+      if (sel) sel.value = TITLES_VALUE;
+      const stageEl = document.getElementById('stage');
+      if (stageEl) stageEl.setAttribute('hidden', '');
+      const pane = ensureTitlesPane();
+      pane.removeAttribute('hidden');
+      document.body.classList.add('titles-mode');
+      renderTitlesList();
+      updateTitlesChrome();
+    }
+    function exitTitlesView() {
+      if (!sectionNav.titlesMode) return;
+      sectionNav.titlesMode = false;
+      const stageEl = document.getElementById('stage');
+      if (stageEl) stageEl.removeAttribute('hidden');
+      const pane = document.getElementById('titlesPane');
+      if (pane) pane.setAttribute('hidden', '');
+      document.body.classList.remove('titles-mode');
+      const hint = $('hint');
+      if (hint) hint.textContent = HINT_CARDS;
+    }
+    function hookTitlesIntoDeck() {
+      if (sectionNav._titlesHooks) return;
+      sectionNav._titlesHooks = true;
+      if (typeof updateChrome === 'function') {
+        const _updateChrome = updateChrome;
+        updateChrome = function() {
+          if (sectionNav.titlesMode) {
+            if (typeof syncSectionSelect === 'function') syncSectionSelect();
+            renderSelected();
+            if (typeof savePersistedState === 'function') savePersistedState();
+            updateTitlesChrome();
+            return;
+          }
+          return _updateChrome.apply(this, arguments);
+        };
+      }
+      if (typeof go === 'function') {
+        const _go = go;
+        go = function(delta) {
+          if (sectionNav.titlesMode) return;
+          return _go.apply(this, arguments);
+        };
+      }
+      if (typeof goToNumber === 'function') {
+        const _goToNumber = goToNumber;
+        goToNumber = function(num, opts) {
+          if (sectionNav.titlesMode) exitTitlesView();
+          return _goToNumber.call(this, num, opts);
+        };
+      }
+    }
     function buildSectionSelect() {
       const sel = document.getElementById('sectionSelect');
       if (!sel || !state.stories.length) return false;
+      hookTitlesIntoDeck();
       const groups = [];
       const byIndex = [];
       let prevKey = null;
@@ -1042,13 +1342,24 @@
         opt.textContent = g.label + ' (' + (g.first === g.last ? g.first : (g.first + '\u2013' + g.last)) + ')';
         sel.appendChild(opt);
       });
+      const titlesOpt = document.createElement('option');
+      titlesOpt.value = TITLES_VALUE;
+      titlesOpt.textContent = 'Titles';
+      sel.appendChild(titlesOpt);
       sectionNav.groups = groups;
       sectionNav.byIndex = byIndex;
       sectionNav.built = true;
-      if (groups.length < 2) sel.closest('.section-bar')?.setAttribute('hidden', '');
+      const bar = sel.closest('.section-bar');
+      if (bar) bar.removeAttribute('hidden');
       sel.addEventListener('change', () => {
-        const g = sectionNav.groups[Number(sel.value)];
+        const val = sel.value;
         sel.blur();
+        if (val === TITLES_VALUE) {
+          enterTitlesView();
+          return;
+        }
+        if (sectionNav.titlesMode) exitTitlesView();
+        const g = sectionNav.groups[Number(val)];
         if (!g) return;
         if (!goToNumber(g.first, { silent: true })) {
           // Fallback: index-in-place if the number lookup fails
@@ -1063,10 +1374,14 @@
     function syncSectionSelect() {
       if (!sectionNav.built && !buildSectionSelect()) return;
       const sel = document.getElementById('sectionSelect');
+      if (!sel) return;
+      if (sectionNav.titlesMode) {
+        if (sel.value !== TITLES_VALUE) sel.value = TITLES_VALUE;
+        return;
+      }
       const gi = sectionNav.byIndex[state.i];
-      if (sel && gi != null && sel.value !== String(gi)) sel.value = String(gi);
+      if (gi != null && sel.value !== String(gi)) sel.value = String(gi);
     }
-
     try { boot(INLINE_DATA); }
     catch (err) {
       $('hint').textContent = String(err.message || err);
